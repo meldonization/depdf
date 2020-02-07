@@ -1,6 +1,8 @@
-from . import logger_init
+import uuid
+from .utils import logger_init
+from .base import Base
 
-log = logger_init('depdf/config')
+log = logger_init('depdf:config')
 
 DEFAULT_TABLE_FLAG = True
 DEFAULT_PARAGRAPH_FLAG = True
@@ -14,7 +16,7 @@ DEFAULT_RESOLUTION = 144
 DEFAULT_DOUBLE_LINE_TOLERANCE = 3
 
 
-class Config(object):
+class Config(Base):
     table_flag = DEFAULT_TABLE_FLAG
     paragraph_flag = DEFAULT_PARAGRAPH_FLAG
     img_flag = DEFAULT_IMG_FLAG
@@ -27,10 +29,16 @@ class Config(object):
     double_line_tolerance = DEFAULT_DOUBLE_LINE_TOLERANCE
 
     def __init__(self, **kwargs):
+        self.unique_prefix = uuid.uuid4()
         for key, value in kwargs.items():
             setattr(self, key, value)
             if not hasattr(self, key):
                 log.warning('config attributes not found: {}'.format(key))
 
-
-DEFAULT_CONFIG = Config()
+    @property
+    def to_json(self):
+        return {
+            i: getattr(self, i, None)
+            for i in dir(self)
+            if not i.startswith('__')
+        }
