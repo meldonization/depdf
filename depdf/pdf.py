@@ -1,17 +1,16 @@
 import pdfplumber
 
-from .config import Config
-from .utils import logger_init
+from depdf.base import Container
+from depdf.config import Config, check_config
+from depdf.log import logger_init
 
-log = logger_init('depdf:pdf')
+log = logger_init(__name__)
 
 
-class DePDF(object):
+class DePDF(Container):
 
-    def __init__(self, file_name, config=Config(), **kwargs):
-        if not isinstance(config, Config):
-            log.warning('wrong config type parsed')
-            config = Config()
+    @check_config
+    def __init__(self, file_name, config=None, **kwargs):
         self.config = config
         self.pdf = pdfplumber.open(file_name, **kwargs)
 

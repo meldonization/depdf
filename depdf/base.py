@@ -1,14 +1,10 @@
-from bs4 import BeautifulSoup
-
-from .utils import *
-
-log = logger_init('depdf:base')
+from depdf.utils import convert_html_to_soup
 
 
 class Base(object):
 
     @property
-    def to_json(self):
+    def to_dict(self):
         return {
             i: getattr(self, i, None)
             for i in dir(self)
@@ -17,14 +13,18 @@ class Base(object):
 
 
 class Container(object):
+    _html = ''
 
     @property
-    def to_soup(self):
-        html = getattr(self, 'html', '')
-        return self.soup
+    def html(self):
+        return self._html
+
+    @html.setter
+    def html(self, html_value):
+        self._html = html_value
 
     @property
-    def to_html(self):
-        soup = getattr(self, 'soup', BeautifulSoup('', 'html.parser'))
-        self.html = str(soup)
-        return self.html
+    def soup(self):
+        return convert_html_to_soup(self._html)
+
+

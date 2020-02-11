@@ -1,19 +1,11 @@
 import uuid
-from .utils import logger_init
-from .base import Base
+from functools import wraps
 
-log = logger_init('depdf:config')
+from depdf.base import Base
+from depdf.log import logger_init
+from depdf.settings import *
 
-DEFAULT_TABLE_FLAG = True
-DEFAULT_PARAGRAPH_FLAG = True
-DEFAULT_IMG_FLAG = False
-DEFAULT_DEBUG_FLAG = False
-DEFAULT_ADD_LINE_FLAG = False
-DEFAULT_SNAP_FLAG = False
-DEFAULT_LOGO_FLAG = True
-DEFAULT_HEADER_FOOTER_FLAG = True
-DEFAULT_RESOLUTION = 144
-DEFAULT_DOUBLE_LINE_TOLERANCE = 3
+log = logger_init(__name__)
 
 
 class Config(Base):
@@ -21,24 +13,44 @@ class Config(Base):
     paragraph_flag = DEFAULT_PARAGRAPH_FLAG
     img_flag = DEFAULT_IMG_FLAG
     debug_flag = DEFAULT_DEBUG_FLAG
-    add_line_flag = DEFAULT_ADD_LINE_FLAG
-    snap_flag = DEFAULT_SNAP_FLAG
     logo_flag = DEFAULT_LOGO_FLAG
     header_footer_flag = DEFAULT_HEADER_FOOTER_FLAG
     resolution = DEFAULT_RESOLUTION
+
+    snap_flag = DEFAULT_SNAP_FLAG
+    add_line_flag = DEFAULT_ADD_LINE_FLAG
     double_line_tolerance = DEFAULT_DOUBLE_LINE_TOLERANCE
+    table_cell_merge_tolerance = DEFAULT_TABLE_CELL_MERGE_TOLERANCE
+    skip_empty_table = DEFAULT_SKIP_EMPTY_TABLE
+
+    log_level = DEFAULT_LOG_LEVEL
+
+    span_class = DEFAULT_SPAN_CLASS
+    paragraph_class = DEFAULT_PARAGRAPH_CLASS
+    table_class = DEFAULT_TABLE_CLASS
 
     def __init__(self, **kwargs):
+        # add unique prefix to dePDF instance
         self.unique_prefix = uuid.uuid4()
+
+        # add configuration parameters
         for key, value in kwargs.items():
             setattr(self, key, value)
             if not hasattr(self, key):
                 log.warning('config attributes not found: {}'.format(key))
 
-    @property
-    def to_json(self):
-        return {
-            i: getattr(self, i, None)
-            for i in dir(self)
-            if not i.startswith('__')
-        }
+        # set logging level by log_level parameter
+        logging.getLogger('depdf').setLevel(self.log_level)
+
+
+DEFAULT_CONFIG = Config()
+
+
+def check_config(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        config = kwargs.get('config')
+        if not isinstance(config, Config):
+            config = DEFAULT_CONFIG
+        return func(*args, config=config, **kwargs)
+    return wrapper
