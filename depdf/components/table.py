@@ -1,23 +1,27 @@
-from depdf.base import Base, Container
+from depdf.base import Base, Box
 from depdf.config import check_config
 from depdf.log import logger_init
 
 log = logger_init(__name__)
 
 
-class Cell(Base):
+class Cell(Base, Box):
 
-    def __init__(self, top_left_x, top_left_y, width, height, text, font_size, inner_object):
+    def __init__(self, top_left_x, top_left_y, right_bottom_x, right_bottom_y, text, font_size, inner_object=None):
         self.x0 = top_left_x
         self.top = top_left_y
-        self.width = width
-        self.height = height
+        self.x1 = right_bottom_x
+        self.bottom = right_bottom_y
         self.text = text
         self.fs = font_size
-        self.inner_object = inner_object
+        self._inner_object = inner_object
+
+    @property
+    def inner_object(self):
+        return self._inner_object.to_dict if hasattr(self._inner_object, 'to_dict') else self._inner_object
 
 
-class Table(Container):
+class Table(Base, Box):
 
     @check_config
     def __init__(self, rows, pid=1, tid=1, config=None):
@@ -27,23 +31,46 @@ class Table(Container):
         self.config = config
 
     @property
+    def bbox(self):
+        x0_list, top_list, x1_list, bottom_list = [], [], [], []
+        for row in self.rows:
+            for cell in row:
+                x0_list.append(cell.x0)
+                top_list.append(cell.top)
+                x1_list.append(cell.x1)
+                bottom_list.append(cell.bottom)
+        try:
+            bbox = (
+                min(x0_list),
+                min(top_list),
+                max(x1_list),
+                max(bottom_list),
+            )
+        except ValueError:
+            bbox = super().bbox
+        return bbox
+
+    @property
     def to_dict(self):
-        return {}
+        table_dict = [
+            [
+                cell.to_dict if hasattr(cell, 'to_dict') else cell
+                for cell in row
+            ]
+            for row in self.rows
+        ]
+        return table_dict
 
     @property
     def to_html(self):
         table_class = getattr(self.config, 'table_class')
         table_cell_merge_tolerance = getattr(self.config, 'table_cell_merge_tolerance')
         skip_empty_table = getattr(self.config, 'skip_empty_table')
-        table_html = convert_table_to_html(
+        self.html = convert_table_to_html(
             self.to_dict, pid=self.pid, tid=self.tid, tc_mt=table_cell_merge_tolerance,
             table_class=table_class, skip_et=skip_empty_table
         )
-        return table_html
-
-
-def extract_pdf_table_by_page(pdf, pid):
-    pass
+        return self.html
 
 
 def gen_column_cell_sizes(t):
@@ -67,46 +94,49 @@ def convert_table_to_html(table_dict, pid=1, tid=1, tc_mt=5, table_class='pdf-ta
     html_table_string = '<table id="page-{pid}-table-{tid}" class="{table_class} page-{pid}">'.format(
         pid=pid, tid=tid, table_class=table_class
     )
-    for rows in table_dict:
-        row_num = len(rows)
-        row_heights = [min([tc['height'] for tc in tr if tc]) for tr in rows]
-        try:
-            column_num, column_widths = gen_column_cell_sizes(rows)
-        except Exception as e:
-            log.debug('convert_table_to_html: {}'.format(e))
-            column_num = max([len(tr) for tr in rows])
-            column_widths = [
-                min([tc['width'] for tc in tr if tc])
-                if not all(v is None for v in tr) else 0
-                for tr in map(list, zip(*rows))
-            ]
-        for rid, tr in enumerate(rows):
-            html_table_string += '<tr>'
-            for cid, tc in enumerate(tr):
-                if tc is None:
-                    continue
-                html_table_string += '<td'
-                row_span = col_span = 1
-                for i in range(rid + 1, row_num):
-                    if abs(tc['height'] - sum(row_heights[rid:i])) > tc_mt:
-                        row_span += 1
-                    else:
-                        break
-                for i in range(cid + 1, column_num):
-                    if abs(tc['width'] - sum(column_widths[cid:i])) > tc_mt:
-                        col_span += 1
-                    else:
-                        break
-                if row_span > 1:
-                    html_table_string += ' rowspan="{}"'.format(row_span)
-                if col_span > 1:
-                    html_table_string += ' colspan="{}"'.format(col_span)
-                html_table_string += ' style="font-size: {font_size}px;">{tc_text}</td>'.format(
-                    font_size=tc['fs'], tc_text=tc['text']
-                )
-                none_text_table = False if tc['text'] else none_text_table
-            html_table_string += '</tr>'
+    row_num = len(table_dict)
+    row_heights = [min([tc['height'] for tc in tr if tc]) for tr in table_dict]
+    try:
+        column_num, column_widths = gen_column_cell_sizes(table_dict)
+    except Exception as e:
+        log.debug('convert_table_to_html error: {}'.format(e))
+        column_num = max([len(tr) for tr in table_dict])
+        column_widths = [
+            min([tc['width'] for tc in tr if tc])
+            if not all(v is None for v in tr) else 0
+            for tr in map(list, zip(*table_dict))
+        ]
+    for rid, tr in enumerate(table_dict):
+        html_table_string += '<tr>'
+        for cid, tc in enumerate(tr):
+            if tc is None:
+                continue
+            html_table_string += '<td'
+            row_span = col_span = 1
+            for i in range(rid + 1, row_num):
+                if abs(tc['height'] - sum(row_heights[rid:i])) > tc_mt:
+                    row_span += 1
+                else:
+                    break
+            for i in range(cid + 1, column_num):
+                if abs(tc['width'] - sum(column_widths[cid:i])) > tc_mt:
+                    col_span += 1
+                else:
+                    break
+            if row_span > 1:
+                html_table_string += ' rowspan="{}"'.format(row_span)
+            if col_span > 1:
+                html_table_string += ' colspan="{}"'.format(col_span)
+            html_table_string += ' style="font-size: {font_size}px;">{tc_text}</td>'.format(
+                font_size=tc['fs'], tc_text=tc['text']
+            )
+            none_text_table = False if tc['text'] else none_text_table
+        html_table_string += '</tr>'
     html_table_string += '</table>'
     if skip_et and none_text_table:
         return empty_table_html
     return html_table_string
+
+
+def extract_pdf_table_by_page(page):
+    pass

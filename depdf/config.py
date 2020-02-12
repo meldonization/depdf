@@ -33,6 +33,9 @@ class Config(Base):
         # add unique prefix to dePDF instance
         self.unique_prefix = uuid.uuid4()
 
+        if kwargs.get('debug_flag'):
+            self.log_level = logging.DEBUG
+
         # add configuration parameters
         for key, value in kwargs.items():
             setattr(self, key, value)
@@ -52,5 +55,6 @@ def check_config(func):
         config = kwargs.get('config')
         if not isinstance(config, Config):
             config = DEFAULT_CONFIG
-        return func(*args, config=config, **kwargs)
+        kwargs['config'] = config
+        return func(*args, **kwargs)
     return wrapper
