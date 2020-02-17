@@ -24,6 +24,7 @@ class Box(object):
 
 
 class Base(object):
+    _cached_properties = ['_html']
     _html = ''
 
     @property
