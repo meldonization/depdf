@@ -1,16 +1,17 @@
 import pdfplumber
 
 from depdf.base import Base
-from depdf.error import PDFTypeError, ConfigTypeError
-from depdf.config import Config, check_config
+from depdf.error import PDFTypeError
+from depdf.config import check_config_type, check_config
 from depdf.log import logger_init
+from depdf.page import DePage
 from depdf.pdf_tools import pdf_head_tail, pdf_logo
 
 log = logger_init(__name__)
 
 
 class DePDF(Base):
-    _cached_properties = Base._cached_properties + ['_same', '_logo', '_html_pages']
+    _cached_properties = Base._cached_properties + ['_same', '_logo', '_pages', '_html_pages']
 
     @check_config
     def __init__(self, pdf, config=None, **kwargs):
@@ -18,10 +19,10 @@ class DePDF(Base):
         :param pdf: pdfplumber.pdf.PDF class
         :param config: depdf.config.Config class
         """
-        self.check_config_type(config)
+        check_config_type(config)
         config.update(**kwargs)
         self._config = config
-        self.check_pdf_type(pdf)
+        check_pdf_type(pdf)
         self._pdf = pdf
 
     @classmethod
@@ -36,7 +37,7 @@ class DePDF(Base):
 
     @config.setter
     def config(self, value):
-        self.check_config_type(value)
+        check_config_type(value)
         self.refresh()
         self._config = value
 
@@ -46,53 +47,52 @@ class DePDF(Base):
 
     @pdf.setter
     def pdf(self, value):
-        self.check_pdf_type(value)
+        check_pdf_type(value)
         self.refresh()
         self._pdf = value
 
     @property
-    def pages(self):
-        return self.pdf.pages
-
-    @property
     def page_num(self):
-        return len(self.pages)
-
-    def _get_cached_property(self, key, calculate_function, *args, **kwargs):
-        """
-        :param key: cached key string
-        :param calculate_function: calculate value function from key
-        :param args: calculate_function arguments
-        :param kwargs: calculate_function keyword arguments
-        :return: value of property key
-        """
-        cached_value = getattr(self, key, None)
-        if cached_value is None:
-            cached_value = calculate_function(*args, **kwargs)
-            setattr(self, key, cached_value)
-        return cached_value
+        return len(self.pdf.pages)
 
     @property
     def same(self):
-        return self._get_cached_property('_same', pdf_head_tail, self.pdf, config=self.config)
+        same_flag = getattr(self.config, 'header_footer_flag')
+        same = self._get_cached_property('_same', pdf_head_tail, self.pdf, config=self.config) if same_flag else []
+        return same
 
     @property
     def logo(self):
-        return self._get_cached_property('_logo', pdf_logo, self.pdf)
+        logo_flag = getattr(self.config, 'logo_flag')
+        logo = self._get_cached_property('_logo', pdf_logo, self.pdf) if logo_flag else []
+        return logo
+
+    @property
+    def pages(self):
+        return self._get_cached_property('_pages', self.generate_pages)
+
+    def generate_pages(self):
+        pages = [
+            DePage(page, pid=pid + 1, same=self.same, logo=self.logo)
+            for page, pid in enumerate(self.pdf.pages)
+        ]
+        return pages
 
     @property
     def html_pages(self):
         return self._get_cached_property('_html_pages', self.extract_html_pages)
 
     def extract_html_pages(self):
-        # todo
-        html_pages = []
+        html_pages = [page.to_html for page in self.pages]
         return html_pages
 
     @property
     def to_html(self):
-        # todo
-        html = {}
+        pdf_class = getattr(self.config, 'pdf_class')
+        html = '<div class="{pdf_class}">'.format(pdf_class=pdf_class)
+        for pid, html_page in enumerate(self.html_pages):
+            html += '<!--page-{pid}-->{html_page}'.format(pid=pid + 1, html_page=html_page)
+        html += '</div>'
         self.html = html
         return html
 
@@ -106,17 +106,7 @@ class DePDF(Base):
         self.pdf.flush_cache()
         self.pdf.close()
 
-    def refresh(self):
-        for p in self._cached_properties:
-            if hasattr(self, p):
-                delattr(self, p)
 
-    @staticmethod
-    def check_config_type(config):
-        if not isinstance(config, Config):
-            raise ConfigTypeError(config)
-
-    @staticmethod
-    def check_pdf_type(pdf):
-        if not isinstance(pdf, pdfplumber.PDF):
-            raise PDFTypeError(pdf)
+def check_pdf_type(pdf):
+    if not isinstance(pdf, pdfplumber.PDF):
+        raise PDFTypeError(pdf)

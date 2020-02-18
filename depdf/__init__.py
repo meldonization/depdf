@@ -5,4 +5,5 @@ from depdf.version import __version__
 __all__ = [
     'convert_pdf_to_html',
     'convert_pdf_to_html_by_page',
+    'DePDF',
 ]

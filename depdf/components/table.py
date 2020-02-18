@@ -6,15 +6,18 @@ log = logger_init(__name__)
 
 
 class Cell(Base, Box):
+    object_type = 'cell'
 
-    def __init__(self, top_left_x, top_left_y, right_bottom_x, right_bottom_y, text, font_size, inner_object=None):
-        self.x0 = top_left_x
-        self.top = top_left_y
-        self.x1 = right_bottom_x
-        self.bottom = right_bottom_y
-        self.text = text
+    def __init__(self, bbox=None, text='', font_size=14, inner_object=None):
+        self.bbox = bbox
         self.fs = font_size
-        self._inner_object = inner_object
+        if text:
+            self.text = text
+            self.html = text
+        else:
+            self._inner_object = inner_object
+            for obj in inner_object:
+                self.html += getattr(obj, 'html', '')
 
     @property
     def inner_object(self):
@@ -22,32 +25,31 @@ class Cell(Base, Box):
 
 
 class Table(Base, Box):
+    object_type = 'table'
 
     @check_config
-    def __init__(self, rows, pid=1, tid=1, config=None):
+    def __init__(self, rows, pid=1, tid=1, config=None, bbox=None):
         self.pid = pid
         self.tid = tid
         self.rows = rows
         self.config = config
+        self.bbox = bbox if bbox else self.calc_table_bbox_by_rows(rows)
 
-    @property
-    def bbox(self):
+    @staticmethod
+    def calc_table_bbox_by_rows(rows):
         x0_list, top_list, x1_list, bottom_list = [], [], [], []
-        for row in self.rows:
+        for row in rows:
             for cell in row:
                 x0_list.append(cell.x0)
                 top_list.append(cell.top)
                 x1_list.append(cell.x1)
                 bottom_list.append(cell.bottom)
-        try:
-            bbox = (
-                min(x0_list),
-                min(top_list),
-                max(x1_list),
-                max(bottom_list),
-            )
-        except ValueError:
-            bbox = super().bbox
+        bbox = (
+            min(x0_list),
+            min(top_list),
+            max(x1_list),
+            max(bottom_list),
+        )
         return bbox
 
     @property
@@ -128,9 +130,9 @@ def convert_table_to_html(table_dict, pid=1, tid=1, tc_mt=5, table_class='pdf-ta
             if col_span > 1:
                 html_table_string += ' colspan="{}"'.format(col_span)
             html_table_string += ' style="font-size: {font_size}px;">{tc_text}</td>'.format(
-                font_size=tc['fs'], tc_text=tc['text']
+                font_size=tc['fs'], tc_text=tc['html']
             )
-            none_text_table = False if tc['text'] else none_text_table
+            none_text_table = False if tc['html'] else none_text_table
         html_table_string += '</tr>'
     html_table_string += '</table>'
     if skip_et and none_text_table:

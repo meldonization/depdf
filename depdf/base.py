@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from depdf.utils import convert_html_to_soup
+from depdf.error import BoxValueError
 
 
 class Box(object):
@@ -8,6 +9,7 @@ class Box(object):
     x1 = Decimal(0)
     top = Decimal(0)
     bottom = Decimal(0)
+    _bbox = (x0, top, x1, bottom)
 
     @property
     def width(self):
@@ -19,7 +21,22 @@ class Box(object):
 
     @property
     def bbox(self):
-        bbox = (self.x0, self.top, self.x1, self.bottom)
+        return self._bbox
+
+    @bbox.setter
+    def bbox(self, value):
+        if value is not None:
+            bbox = self.normalize_bbox(value)
+            (self.x0, self.top, self.x1, self.bottom) = bbox
+            self._bbox = bbox
+
+    @staticmethod
+    def normalize_bbox(bbox):
+        if not (isinstance(bbox, list) or isinstance(bbox, tuple)):
+            raise BoxValueError(bbox)
+        if isinstance(bbox, str):
+            raise BoxValueError(bbox)
+        bbox = (Decimal(i) for i in bbox)
         return bbox
 
 
@@ -45,5 +62,24 @@ class Base(object):
             i: getattr(self, i, None) for i in dir(self)
             if not i.startswith('_') and i != 'to_dict'
         }
+
+    def _get_cached_property(self, key, calculate_function, *args, **kwargs):
+        """
+        :param key: cached key string
+        :param calculate_function: calculate value function from key
+        :param args: calculate_function arguments
+        :param kwargs: calculate_function keyword arguments
+        :return: value of property key
+        """
+        cached_value = getattr(self, key, None)
+        if cached_value is None:
+            cached_value = calculate_function(*args, **kwargs)
+            setattr(self, key, cached_value)
+        return cached_value
+
+    def refresh(self):
+        for p in self._cached_properties:
+            if hasattr(self, p):
+                delattr(self, p)
 
 

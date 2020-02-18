@@ -33,10 +33,11 @@ class Config(Base):
     verbose_flag = DEFAULT_VERBOSE_FLAG
     debug_flag = DEFAULT_DEBUG_FLAG
 
-    # paragraph
+    # html
     span_class = DEFAULT_SPAN_CLASS
     paragraph_class = DEFAULT_PARAGRAPH_CLASS
     table_class = DEFAULT_TABLE_CLASS
+    pdf_class = DEFAULT_PDF_CLASS
 
     def __init__(self, **kwargs):
         # add unique prefix to dePDF instance
@@ -70,8 +71,13 @@ def check_config(func):
         config = kwargs.get('config')
         if config is None:
             config = DEFAULT_CONFIG
-        elif not isinstance(config, Config):
-            raise ConfigTypeError(config)
+        else:
+            check_config_type(config)
         kwargs['config'] = config
         return func(*args, **kwargs)
     return wrapper
+
+
+def check_config_type(config):
+    if not isinstance(config, Config):
+        raise ConfigTypeError(config)
