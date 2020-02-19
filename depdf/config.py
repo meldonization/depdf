@@ -10,13 +10,24 @@ log = logger_init(__name__)
 
 
 class Config(Base):
+    # pdf
+    logo_flag = DEFAULT_LOGO_FLAG
+    header_footer_flag = DEFAULT_HEADER_FOOTER_FLAG
+
     # page
     table_flag = DEFAULT_TABLE_FLAG
     paragraph_flag = DEFAULT_PARAGRAPH_FLAG
     img_flag = DEFAULT_IMG_FLAG
-    logo_flag = DEFAULT_LOGO_FLAG
-    header_footer_flag = DEFAULT_HEADER_FOOTER_FLAG
     resolution = DEFAULT_RESOLUTION
+    main_frame_tolerance = DEFAULT_MAIN_FRAME_TOLERANCE
+    x_tolerance = None  # 该参数可通过页面内容自动分析
+    y_tolerance = None  # 该参数可通过页面内容自动分析
+
+    # chars
+    char_overlap_size = DEFAULT_CHAR_OVERLAP_SIZE
+    default_char_size = DEFAULT_CHAR_SIZE
+    char_size_upper = DEFAULT_CHAR_SIZE_UPPER
+    char_size_lower = DEFAULT_CHAR_SIZE_LOWER
 
     # table
     snap_flag = DEFAULT_SNAP_FLAG

@@ -5,7 +5,7 @@ from depdf.error import PDFTypeError
 from depdf.config import check_config_type, check_config
 from depdf.log import logger_init
 from depdf.page import DePage
-from depdf.pdf_tools import pdf_head_tail, pdf_logo
+from depdf.pdf_tools import pdf_logo, pdf_head_tail
 
 log = logger_init(__name__)
 

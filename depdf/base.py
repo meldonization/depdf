@@ -81,5 +81,8 @@ class Base(object):
         for p in self._cached_properties:
             if hasattr(self, p):
                 delattr(self, p)
+        self.reset()
 
+    def reset(self):
+        pass
 

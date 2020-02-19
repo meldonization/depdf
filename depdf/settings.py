@@ -1,12 +1,22 @@
+from decimal import Decimal
 import logging
+
+# general pdf config
+DEFAULT_LOGO_FLAG = True
+DEFAULT_HEADER_FOOTER_FLAG = True
 
 # general page extraction config
 DEFAULT_TABLE_FLAG = True
 DEFAULT_PARAGRAPH_FLAG = True
 DEFAULT_IMG_FLAG = False
-DEFAULT_LOGO_FLAG = True
-DEFAULT_HEADER_FOOTER_FLAG = True
 DEFAULT_RESOLUTION = 144
+DEFAULT_MAIN_FRAME_TOLERANCE = 6
+
+# char
+DEFAULT_CHAR_OVERLAP_SIZE = 3  # => depdf.page_tools.remove_duplicate_chars
+DEFAULT_CHAR_SIZE = Decimal(12)  # => depdf.page_tools.calculate_average_char_size
+DEFAULT_CHAR_SIZE_UPPER = Decimal(30)  # => depdf.page_tools.calculate_average_char_size
+DEFAULT_CHAR_SIZE_LOWER = Decimal(3)  # => depdf.page_tools.calculate_average_char_size
 
 # table extraction config
 DEFAULT_TABLE_CELL_MERGE_TOLERANCE = 5
@@ -17,7 +27,6 @@ DEFAULT_SKIP_EMPTY_TABLE = False
 
 # head & tail extraction
 DEFAULT_HEAD_TAIL_PAGE_OFFSET_PERCENT = 0.1  # head/tail max-height percent form top & bottom of page
-
 
 # depdf logging setting
 DEFAULT_LOG_FORMAT = '%(levelname)s:%(name)s:%(asctime)-15s %(message)s'

@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from depdf.config import check_config, PDF_IMAGE_KEYS
-from depdf.components import *
+from depdf.page_tools import analysis_page_orientation
 
 
 def check_page_orientation(pdf, pid):
@@ -10,10 +10,7 @@ def check_page_orientation(pdf, pid):
     :param pid: page number starts from 0
     :return:
     """
-    page_width = pdf.pages[pid].width
-    page_height = pdf.pages[pid].height
-    orientation = 'landscape' if page_width >= page_height else 'portrait'
-    return orientation
+    return analysis_page_orientation(pdf.pages[pid])
 
 
 @check_config
@@ -141,11 +138,3 @@ def pdf_logo(pdf):
         compare_image(land_pages[page_1], land_pages[page_2])
 
     return logo
-
-
-def convert_plumber_table():
-    pass
-
-
-def depdf_page_objects():
-    pass
