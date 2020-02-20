@@ -22,6 +22,9 @@ class Config(Base):
     main_frame_tolerance = DEFAULT_MAIN_FRAME_TOLERANCE
     x_tolerance = None  # 该参数可通过页面内容自动分析
     y_tolerance = None  # 该参数可通过页面内容自动分析
+    page_num_top_fraction = DEFAULT_PAGE_NUM_TOP_FRACTION
+    page_num_left_fraction = DEFAULT_PAGE_NUM_LEFT_FRACTION
+    page_num_right_fraction = DEFAULT_PAGE_NUM_RIGHT_FRACTION
 
     # chars
     char_overlap_size = DEFAULT_CHAR_OVERLAP_SIZE

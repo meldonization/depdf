@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from depdf.config import check_config, PDF_IMAGE_KEYS
-from depdf.page_tools import analysis_page_orientation
+from depdf.page_tools import analyze_page_orientation
 
 
 def check_page_orientation(pdf, pid):
@@ -10,7 +10,7 @@ def check_page_orientation(pdf, pid):
     :param pid: page number starts from 0
     :return:
     """
-    return analysis_page_orientation(pdf.pages[pid])
+    return analyze_page_orientation(pdf.pages[pid])
 
 
 @check_config
