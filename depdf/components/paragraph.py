@@ -29,7 +29,3 @@ class Paragraph(Base, Box):
     @property
     def inner_object(self):
         return [obj.to_dict if hasattr(obj, 'to_dict') else obj for obj in self._inner_object]
-
-
-def extract_pdf_paragraph_by_page(page):
-    pass

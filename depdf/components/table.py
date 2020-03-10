@@ -129,16 +129,10 @@ def convert_table_to_html(table_dict, pid=1, tid=1, tc_mt=5, table_class='pdf-ta
                 html_table_string += ' rowspan="{}"'.format(row_span)
             if col_span > 1:
                 html_table_string += ' colspan="{}"'.format(col_span)
-            html_table_string += ' style="font-size: {font_size}px;">{tc_text}</td>'.format(
-                font_size=tc['fs'], tc_text=tc['html']
-            )
+            html_table_string += '>{tc_text}</td>'.format(tc_text=tc['html'])
             none_text_table = False if tc['html'] else none_text_table
         html_table_string += '</tr>'
     html_table_string += '</table>'
     if skip_et and none_text_table:
         return empty_table_html
     return html_table_string
-
-
-def extract_pdf_table_by_page(page):
-    pass

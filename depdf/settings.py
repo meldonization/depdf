@@ -4,13 +4,13 @@ import logging
 # general pdf config
 DEFAULT_LOGO_FLAG = True
 DEFAULT_HEADER_FOOTER_FLAG = True
+DEFAULT_TEMP_DIR_PREFIX = 'temp_depdf'
 
 # general page extraction config
 DEFAULT_TABLE_FLAG = True
 DEFAULT_PARAGRAPH_FLAG = True
-DEFAULT_IMG_FLAG = False
+DEFAULT_IMAGE_FLAG = True
 DEFAULT_RESOLUTION = 144
-DEFAULT_MAIN_FRAME_TOLERANCE = 6
 DEFAULT_PAGE_NUM_TOP_FRACTION = Decimal(0.75)
 DEFAULT_PAGE_NUM_LEFT_FRACTION = Decimal(0.44)
 DEFAULT_PAGE_NUM_RIGHT_FRACTION = Decimal(0.56)
@@ -25,8 +25,13 @@ DEFAULT_CHAR_SIZE_LOWER = Decimal(3)  # => depdf.page_tools.calculate_average_ch
 DEFAULT_TABLE_CELL_MERGE_TOLERANCE = 5
 DEFAULT_ADD_LINE_FLAG = False
 DEFAULT_SNAP_FLAG = False
-DEFAULT_DOUBLE_LINE_TOLERANCE = 3
+DEFAULT_MAX_DOUBLE_LINE_TOLERANCE = 3  # => depdf.page_tools.remove_single_lines
+DEFAULT_MIN_DOUBLE_LINE_TOLERANCE = Decimal(0.05)  # => depdf.page_tools.remove_single_lines
+DEFAULT_VERTICAL_DOUBLE_LINE_TOLERANCE = Decimal(2)  # => depdf.page_tools.remove_single_lines
 DEFAULT_SKIP_EMPTY_TABLE = False
+
+# image
+DEFAULT_MIN_IMAGE_SIZE = 80  # minimum width or height of image which to be ignored
 
 # head & tail extraction
 DEFAULT_HEAD_TAIL_PAGE_OFFSET_PERCENT = 0.1  # head/tail max-height percent form top & bottom of page
@@ -44,3 +49,4 @@ DEFAULT_SPAN_CLASS = 'pdf-span'
 DEFAULT_PARAGRAPH_CLASS = 'pdf-paragraph'
 DEFAULT_TABLE_CLASS = 'pdf-table'
 DEFAULT_PDF_CLASS = 'pdf-content'
+DEFAULT_IMAGE_CLASS = 'pdf-image'

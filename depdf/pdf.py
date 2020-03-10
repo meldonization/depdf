@@ -1,3 +1,6 @@
+import ntpath
+import re
+
 import pdfplumber
 
 from depdf.base import Base
@@ -8,6 +11,7 @@ from depdf.page import DePage
 from depdf.pdf_tools import pdf_logo, pdf_head_tail
 
 log = logger_init(__name__)
+pdf_appendix_re = re.compile(r"\.pdf$", re.I)
 
 
 class DePDF(Base):
@@ -23,7 +27,16 @@ class DePDF(Base):
         config.update(**kwargs)
         self._config = config
         check_pdf_type(pdf)
+        self.prefix = self.get_prefix()
         self._pdf = pdf
+
+    def get_prefix(self):
+        if self.config.unique_prefix:
+            return self.config.unique_prefix
+        pdf_base_name = ntpath.basename(self.pdf.stream.name)
+        prefix = pdf_appendix_re.sub('', pdf_base_name)
+        self.config.unique_prefix = prefix
+        return prefix
 
     @classmethod
     @check_config
@@ -50,6 +63,10 @@ class DePDF(Base):
         check_pdf_type(value)
         self.refresh()
         self._pdf = value
+
+    def refresh(self):
+        self.prefix = self.get_prefix()
+        return super().refresh()
 
     @property
     def page_num(self):
