@@ -31,3 +31,36 @@ def calc_overlap(a, b):
     else:
         overlap_length = 0
     return abs(overlap_length)
+
+
+def calc_bbox(objects):
+    x0_list, top_list, x1_list, bottom_list = [], [], [], []
+    for inner in objects:
+        if isinstance(inner, list):
+            for cell in inner:
+                if cell and hasattr(cell, 'bbox'):
+                    x0_list.append(cell.x0)
+                    top_list.append(cell.top)
+                    x1_list.append(cell.x1)
+                    bottom_list.append(cell.bottom)
+        else:
+            if inner and hasattr(inner, 'bbox'):
+                x0_list.append(inner.x0)
+                top_list.append(inner.top)
+                x1_list.append(inner.x1)
+                bottom_list.append(inner.bottom)
+    bbox = [
+        min(x0_list) if x0_list else 0,
+        min(top_list) if top_list else 0,
+        max(x1_list) if x1_list else 0,
+        max(bottom_list) if bottom_list else 0,
+    ]
+    return bbox
+
+
+def construct_style(style=None):
+    if not style or not isinstance(style, dict):
+        return ''
+    style_list = ['{}: {};'.format(k, v) for k, v in style.items()]
+    style_string = ' style="{}"'.format(' '.join(style_list))
+    return style_string

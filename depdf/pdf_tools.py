@@ -21,8 +21,8 @@ def pdf_head_tail(pdf, config=None):
     :return: PDF 文件的页眉和页脚
     """
     offset = getattr(config, 'default_head_tail_page_offset_percent')
-    same_diff_tolerance = Decimal(0.5)  # todo
-    page_1, page_2 = 0, 1  # 需要拿来对比页眉和页脚的页码  # todo
+    same_diff_tolerance = Decimal(0.5)  # todo parameter
+    page_1, page_2 = 0, 1  # 需要拿来对比页眉和页脚的页码  # todo parameter
     same = []
     page_num = len(pdf.pages)
     # Portrait pages
@@ -103,7 +103,7 @@ def pdf_head_tail(pdf, config=None):
 
 
 def pdf_logo(pdf):
-    page_1, page_2 = 0, 1  # 需要拿来对比水印的页码  # todo
+    page_1, page_2 = 0, 1  # 需要拿来对比水印的页码  # todo parameter
     logo = []
     page_num = len(pdf.pages)
     port_pages = [i for i in range(page_num) if pdf.pages[i].width < pdf.pages[i].height and i != 0]

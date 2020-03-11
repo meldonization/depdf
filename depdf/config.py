@@ -61,6 +61,7 @@ class Config(Base):
     table_class = DEFAULT_TABLE_CLASS
     pdf_class = DEFAULT_PDF_CLASS
     image_class = DEFAULT_IMAGE_CLASS
+    page_class = DEFAULT_PAGE_CLASS
 
     def __init__(self, **kwargs):
         # set log level automatically if debug mode enabled
@@ -71,9 +72,13 @@ class Config(Base):
 
         # add configuration parameters
         self.update(**kwargs)
+        self._kwargs = kwargs
 
         # set logging level by log_level parameter
         logging.getLogger('depdf').setLevel(self.log_level)
+
+    def __repr__(self):
+        return '<depdf.Config: {}>'.format(self._kwargs)
 
     def update(self, **kwargs):
         for key, value in kwargs.items():

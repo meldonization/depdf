@@ -1,27 +1,23 @@
-from depdf.base import Base, Box
+from depdf.base import Base, Box, InnerWrapper
 from depdf.config import check_config
 from depdf.log import logger_init
+from depdf.utils import calc_bbox
 
 log = logger_init(__name__)
 
 
-class Cell(Base, Box):
+class Cell(InnerWrapper, Box):
     object_type = 'cell'
 
-    def __init__(self, bbox=None, text='', font_size=14, inner_object=None):
+    def __init__(self, bbox=None, text='', inner_objects=None):
         self.bbox = bbox
-        self.fs = font_size
         if text:
             self.text = text
             self.html = text
         else:
-            self._inner_object = inner_object
-            for obj in inner_object:
+            self._inner_objects = inner_objects
+            for obj in inner_objects:
                 self.html += getattr(obj, 'html', '')
-
-    @property
-    def inner_object(self):
-        return self._inner_object.to_dict if hasattr(self._inner_object, 'to_dict') else self._inner_object
 
 
 class Table(Base, Box):
@@ -33,24 +29,10 @@ class Table(Base, Box):
         self.tid = tid
         self.rows = rows
         self.config = config
-        self.bbox = bbox if bbox else self.calc_table_bbox_by_rows(rows)
+        self.bbox = bbox if bbox else calc_bbox(rows)
 
-    @staticmethod
-    def calc_table_bbox_by_rows(rows):
-        x0_list, top_list, x1_list, bottom_list = [], [], [], []
-        for row in rows:
-            for cell in row:
-                x0_list.append(cell.x0)
-                top_list.append(cell.top)
-                x1_list.append(cell.x1)
-                bottom_list.append(cell.bottom)
-        bbox = (
-            min(x0_list),
-            min(top_list),
-            max(x1_list),
-            max(bottom_list),
-        )
-        return bbox
+    def __repr__(self):
+        return '<depdf.Table: ({}, {})>'.format(self.pid, self.tid)
 
     @property
     def to_dict(self):
@@ -64,15 +46,20 @@ class Table(Base, Box):
         return table_dict
 
     @property
+    def html(self):
+        if not self._html and hasattr(self, 'to_html'):
+            return self.to_html
+        return self._html
+
+    @property
     def to_html(self):
         table_class = getattr(self.config, 'table_class')
         table_cell_merge_tolerance = getattr(self.config, 'table_cell_merge_tolerance')
         skip_empty_table = getattr(self.config, 'skip_empty_table')
-        self.html = convert_table_to_html(
+        return convert_table_to_html(
             self.to_dict, pid=self.pid, tid=self.tid, tc_mt=table_cell_merge_tolerance,
             table_class=table_class, skip_et=skip_empty_table
         )
-        return self.html
 
 
 def gen_column_cell_sizes(t):

@@ -11,6 +11,9 @@ class Box(object):
     bottom = Decimal(0)
     _bbox = (x0, top, x1, bottom)
 
+    def __repr__(self):
+        return '<depdf.Box: {}>'.format(tuple(self.bbox))
+
     @property
     def width(self):
         return self.x1 - self.x0
@@ -27,7 +30,7 @@ class Box(object):
     def bbox(self, value):
         if value is not None:
             bbox = self.normalize_bbox(value)
-            (self.x0, self.top, self.x1, self.bottom) = bbox
+            self.x0, self.top, self.x1, self.bottom = bbox
             self._bbox = bbox
 
     @staticmethod
@@ -36,7 +39,9 @@ class Box(object):
             raise BoxValueError(bbox)
         if isinstance(bbox, str):
             raise BoxValueError(bbox)
-        bbox = (Decimal(i) for i in bbox)
+        if len(bbox) != 4:
+            raise BoxValueError(bbox)
+        bbox = [Decimal(i) for i in bbox]
         return bbox
 
 
@@ -86,3 +91,10 @@ class Base(object):
     def reset(self):
         pass
 
+
+class InnerWrapper(Base):
+    _inner_objects = []
+
+    @property
+    def inner_objects(self):
+        return [obj.to_dict if hasattr(obj, 'to_dict') else obj for obj in self._inner_objects]

@@ -27,8 +27,11 @@ class DePDF(Base):
         config.update(**kwargs)
         self._config = config
         check_pdf_type(pdf)
-        self.prefix = self.get_prefix()
         self._pdf = pdf
+        self.prefix = self.get_prefix()
+
+    def __repr__(self):
+        return '<depdf.DePDF: {}>'.format(self.prefix)
 
     def get_prefix(self):
         if self.config.unique_prefix:
@@ -104,13 +107,18 @@ class DePDF(Base):
         return html_pages
 
     @property
+    def html(self):
+        if not self._html and hasattr(self, 'to_html'):
+            return self.to_html
+        return self._html
+
+    @property
     def to_html(self):
         pdf_class = getattr(self.config, 'pdf_class')
         html = '<div class="{pdf_class}">'.format(pdf_class=pdf_class)
         for pid, html_page in enumerate(self.html_pages):
             html += '<!--page-{pid}-->{html_page}'.format(pid=pid + 1, html_page=html_page)
         html += '</div>'
-        self.html = html
         return html
 
     def __enter__(self):

@@ -70,14 +70,16 @@ def analyze_page_orientation(plumber_page):
 
 def analyze_page_num_word(phrases, page_height, page_width, top_fraction=Decimal(0.7),
                           left_fraction=Decimal(0.4), right_fraction=Decimal(0.6)):
-    page_word = None
+    pagination_phrases = []
     if phrases and PAGE_NUM_RE.findall(phrases[-1]['text']):
-        last_word = phrases[-1]
-        if last_word['bottom'] >= page_height * top_fraction and \
-                last_word['x0'] >= page_width * left_fraction and \
-                last_word['x1'] <= page_width * right_fraction:
-            page_word = last_word
-    return page_word
+        for phrase in reversed(phrases):
+            if phrase['bottom'] >= page_height * top_fraction and \
+                    phrase['x0'] >= page_width * left_fraction and \
+                    phrase['x1'] <= page_width * right_fraction:
+                pagination_phrases.append(phrase)
+            else:
+                break
+    return pagination_phrases
 
 
 def edges_to_lines(edges):
@@ -160,7 +162,7 @@ def convert_plumber_table(pdf_page, table, pid=1, tid=1, config=None, min_cs=1, 
             text = '……' if text == '„„' else text
             bbox = (cell[0], cell[1], cell[2], cell[3])
             table_row_dict.append({'width': c_w, 'height': c_h, 'text': text})
-            table_row.append(Cell(bbox=bbox, text=text, inner_object=None))
+            table_row.append(Cell(bbox=bbox, text=text))
         if table_row_dict and not all(v is None for v in table_row_dict):
             table_rows.append(table_row)
     return Table(table_rows, pid=pid, tid=tid, config=config)
@@ -206,45 +208,33 @@ def merge_page_figures(pdf_page, tables_raw=None, logo=None, min_width=3, min_he
     return figures_raw
 
 
-def calculate_paragraph_border(page_object):
-    pdf_page = page_object.page
-    tables_raw = page_object.tables_raw
-    table_clean = page_object.tables
-    images = page_object.images
-    ave_cs = page_object.ave_cs
-    page_words = page_object.page_words
-    phrases = page_object.phrases
-    same = page_object.same
-    page_width = page_object.width
-    page_height = page_object.height
+def calculate_paragraph_border(depdf_page_object):
+    tables_raw = depdf_page_object.tables_raw
+    images_raw = depdf_page_object.images_raw
+    ave_cs = depdf_page_object.ave_cs
+    pagination_phrases = depdf_page_object.pagination_phrases
+    phrases = depdf_page_object.phrases
+    same = depdf_page_object.same
+    page_width = depdf_page_object.width
+    page_height = depdf_page_object.height
+    same_tmp = depdf_page_object.same_tmp
+    table_words = depdf_page_object._table_phrases
+    image_words = depdf_page_object._image_phrases
 
-    table_words = [[] for i in table_clean]
-    img_words = []
-    for img in images:
-        if 'bbox' not in img:
-            continue
-        img_main = pdf_page.within_bbox(img['bbox'])
-        try:
-            img_words.extend(img_main.extract_words(x_tolerance=ave_cs * 3 / 2))
-        except:
-            pass
     tts, tbs, lls, lrs = [], [], [], []
     tt = tb = ll = lr = None  # top-top, top-bottom, left-left, left-right
-    same_tmp = []
-    for i in same:
-        j = {k: v for k, v in i.items() if k != 'mode'}
-        same_tmp.append(j)
     for i in phrases:
-        if (same and i in same_tmp) or i in img_words or i in page_words:
+        if (same and i in same_tmp) or i in image_words or i in pagination_phrases:
             continue
         inside = 0
         for idx, table in enumerate(tables_raw):
             if table.bbox[1] <= (i['top'] + i['bottom']) / 2 <= table.bbox[3]:
                 inside = 1
-                table_words[idx].append(i)
-        for img in images:
+                table_words.append(i)
+        for img in images_raw:
             if 'bbox' in img and i['top'] >= img['bbox'][1] - ave_cs and i['bottom'] <= img['bbox'][3] + ave_cs:
-                img_words.append(i)
+                image_words.append(i)
+                inside = 1
         if inside:
             continue
         tts.append(i['top'])
@@ -270,3 +260,7 @@ def calculate_paragraph_border(page_object):
     lr = Decimal(lr_mc[0][0]) if lr_mc else lr
     lr = page_width * 4 / 5 if lr <= page_width * 7 / 10 else lr
     return ll, tt, lr, tb
+
+
+def format_text(text):
+    return text.strip().replace('\xa0', '')

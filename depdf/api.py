@@ -5,6 +5,7 @@ from pdfplumber.pdf import PDF
 from depdf.error import PDFTypeError
 from depdf.log import logger_init
 from depdf.pdf import DePDF
+from depdf.page import DePage
 
 log = logger_init(__name__)
 
@@ -30,47 +31,46 @@ def api_load_pdf(api_func):
 
 
 @api_load_pdf
-def convert_pdf_to_html(pdf_file_path, **kwargs):
+def convert_pdf_to_html(pdf_file, **kwargs):
     """
-    :param pdf_file_path: pdf file absolute path
+    :param pdf_file: pdf file absolute path
     :param kwargs: config keyword arguments
     :return:
     """
-    html = []
-    return html
+    return pdf_file.html
 
 
 @api_load_pdf
-def convert_pdf_to_html_by_page(pdf_file_path, pid, **kwargs):
+def convert_page_to_html(pdf_file, pid, **kwargs):
     """
-    :param pdf_file_path: pdf file absolute path
+    :param pdf_file: pdf file absolute path
     :param pid: page number start from 1
     :param kwargs: config keyword arguments
     :return:
     """
-    html_page = ''
-    return html_page
+    page = pdf_file.pages[pid - 1]
+    return page.html
 
 
 @api_load_pdf
-def extract_page_tables(pdf_file_path, pid, **kwargs):
+def extract_page_tables(pdf_file, pid, **kwargs):
     """
-    :param pdf_file_path: pdf file absolute path
+    :param pdf_file: pdf file absolute path
     :param pid: page number start from 1
     :param kwargs: config keyword arguments
     :return:
     """
-    tables = []
-    return tables
+    page = pdf_file.pages[pid - 1]
+    return page.tables
 
 
 @api_load_pdf
-def extract_page_paragraphs(pdf_file_path, pid, **kwargs):
+def extract_page_paragraphs(pdf_file, pid, **kwargs):
     """
-    :param pdf_file_path: pdf file absolute path
+    :param pdf_file: pdf file absolute path
     :param pid: page number start from 1
     :param kwargs: config keyword arguments
     :return:
     """
-    paragraphs = []
-    return paragraphs
+    page = pdf_file.pages[pid - 1]
+    return page.paragraphs
