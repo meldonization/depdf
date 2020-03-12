@@ -1,12 +1,11 @@
-import os
 from statistics import mean, median
 import uuid
 
 from pdfplumber.page import Page
 
 from depdf.base import Base
-from depdf.components import Image, Paragraph, Text, Span
-from depdf.config import check_config, check_config_type
+from depdf.components import Paragraph, Text, Span
+from depdf.config import check_config_type
 from depdf.error import PageTypeError
 from depdf.page_tools import *
 
@@ -164,6 +163,10 @@ class DePage(Base):
     def images_raw(self):
         return self._images_raw
 
+    def save_html(self):
+        page_file_name = '{}_page_{}.html'.format(self.prefix, self.pid)
+        return super().write_to(page_file_name)
+
     @property
     def html(self):
         if not self._html and hasattr(self, 'to_html'):
@@ -173,7 +176,9 @@ class DePage(Base):
     @property
     def to_html(self):
         page_class = getattr(self.config, 'page_class')
-        html = '<div id="page-{}" class="{}">'.format(self.pid, page_class)
+        html = '<div id="page-{}" class="{}" new_para_start="{}" new_para_end="{}">'.format(
+            self.pid, page_class, self.new_para_start_flag, self.new_para_end_flag
+        )
         for obj in self.objects:
             html += getattr(obj, 'html', '')
         html += '</div>'
@@ -254,7 +259,9 @@ class DePage(Base):
 
     def extract_phrases(self):
         phrases = [
-            i for i in self.page.extract_words(x_tolerance=self.x_tolerance, y_tolerance=self.y_tolerance)
+            i for i in self.page.extract_words(x_tolerance=self.x_tolerance,
+                                               y_tolerance=self.y_tolerance,
+                                               keep_blank_chars=True)
             if 'top' in i and i['top'] >= self.frame_top and 'bottom' in i and i['bottom'] <= self.frame_bottom
         ]
         self.phrases = phrases
@@ -313,6 +320,19 @@ class DePage(Base):
         h_curves, v_curves = curve_to_lines(page_curves)
         h_lines.extend(h_curves)
         v_lines.extend(v_curves)
+
+        # 增加竖线
+        add_vlf = getattr(self.config, 'add_vertical_lines_flag')
+        if add_vlf:
+            v_lines_add = add_vertical_lines(v_lines, h_lines, rect_edges_raw, self.page, self.ave_cs)
+            v_lines.extend(v_lines_add)
+
+        # 增加顶部和底部的横线
+        add_hlf = getattr(self.config, 'add_horizontal_lines_flag')
+        vlts_tolerance = getattr(self.config, 'add_horizontal_line_tolerance')
+        if add_hlf:
+            h_lines_add = add_horizontal_lines(v_lines, h_lines, vlts_tolerance=vlts_tolerance)
+            h_lines.extend(h_lines_add)
 
         # 设定页面的横竖线列表
         self.h_edges = [{'top': i['top'], 'x0': i['x0'], 'x1': i['x1']} for i in h_lines]
@@ -389,7 +409,7 @@ class DePage(Base):
         for image in images_raw:
             try:
                 image_area = self.page.within_bbox(image['bbox'])
-                image_words.extend(image_area.extract_words(x_tolerance=self.ave_cs * 3 / 2))
+                image_words.extend(image_area.extract_words(x_tolerance=self.ave_cs * 3 / 2, keep_blank_chars=True))
             except:
                 pass
         self._image_phrases = image_words
@@ -411,7 +431,7 @@ class DePage(Base):
         para_idx, paragraphs, paragraph_objects = 1, [], []
         ave_ts = ave_cs = self.ave_cs
         ave_lh, page_width = self.ave_lh, self.width
-        div_flag = center_flag = False
+        div_flag = center_flag = right_flag = False
         para_style = {}
         for i in self.phrases:
             if i in self.same_tmp or i in self._image_phrases or \
@@ -444,18 +464,21 @@ class DePage(Base):
                         if abs(left - ll) <= 1 and p_right >= lr - ave_ts * 3 / 2:
                             new_para_flag = False  # 如果该行的左边距特别小且上一行的右边距相对较小，则认为是同一个段落
                     if new_para_flag:
-                        if abs(page_width - right - left) <= ave_ts / 2:
+                        if abs(page_width - right - left) <= ave_ts * 2:
                             if abs(lr - right) >= 4 * ave_ts:  # 段前有四个 char_size 大小的空白
                                 center_flag = True
                         if left > ll + ave_ts * 4:
                             div_flag = True
+                            if right >= lr - ave_ts:
+                                right_flag = True
                 elif abs(left - p_right) >= ave_ts * 2:  # 同一行需要判定该段落是否为文本框组合
                     if abs(top - p_top) <= ave_ts / 2:
                         new_line_flag = new_para_flag = False
 
             if new_para_flag and paragraph_objects:
+                align = para_style.pop('align') if 'align' in para_style else None
                 paragraphs.append(Paragraph(
-                    pid=self.pid, para_idx=para_idx, config=self.config,
+                    pid=self.pid, para_idx=para_idx, config=self.config, align=align,
                     inner_objects=paragraph_objects, style=para_style
                 ))
                 para_style = {}
@@ -469,6 +492,8 @@ class DePage(Base):
                     para_style.update({'align': 'center'})
                 elif div_flag:
                     para_style.update({'margin-left': '{0}px'.format((left - ll))})
+                    if right_flag:
+                        para_style.update({'align': 'right'})
 
             if new_line_flag:
                 paragraph_objects.append(Text(bbox=bbox, text=text))
@@ -486,6 +511,7 @@ class DePage(Base):
             if center_flag:
                 para_style.update({'align': 'center'})
             elif div_flag:
+                para_style.update({'align': 'left'})
                 para_style.update({'margin-left': '{0}px'.format((left - ll))})
             paragraphs.append(Paragraph(
                 pid=self.pid, para_idx=para_idx, config=self.config,

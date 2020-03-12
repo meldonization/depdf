@@ -29,6 +29,9 @@ DEFAULT_MAX_DOUBLE_LINE_TOLERANCE = 3  # => depdf.page_tools.remove_single_lines
 DEFAULT_MIN_DOUBLE_LINE_TOLERANCE = Decimal(0.05)  # => depdf.page_tools.remove_single_lines
 DEFAULT_VERTICAL_DOUBLE_LINE_TOLERANCE = Decimal(2)  # => depdf.page_tools.remove_single_lines
 DEFAULT_SKIP_EMPTY_TABLE = False
+DEFAULT_ADD_VERTICAL_LINES_FLAG = False  # 是否为表格自动增加可能缺失的竖线
+DEFAULT_ADD_HORIZONTAL_LINES_FLAG = False  # 是否为表格自动增加可能缺失的横线
+DEFAULT_ADD_HORIZONTAL_LINE_TOLERANCE = Decimal(0.1)  # 增加表格顶部和底部的横线的参数
 
 # image
 DEFAULT_MIN_IMAGE_SIZE = 80  # minimum width or height of image which to be ignored

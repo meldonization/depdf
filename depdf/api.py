@@ -21,7 +21,7 @@ def api_load_pdf(api_func):
         elif isinstance(pdf_file_path, PDF):
             pdf = DePDF(pdf_file_path, config=config, **kwargs)
         elif isinstance(pdf_file_path, str):
-            pdf = DePDF.open(pdf_file_path, config=config, **kwargs)
+            pdf = DePDF.load(pdf_file_path, config=config, **kwargs)
         else:
             raise PDFTypeError
         res = api_func(pdf, pid) if pid > 0 else api_func(pdf)

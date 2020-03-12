@@ -15,7 +15,7 @@ class Image(Base, Box):
         width = bbox[2] - bbox[0]
         img_id = 'page-{pid}-image-{img_idx}'.format(pid=pid, img_idx=img_idx)
         img_class = '{img_class} page-{pid}'.format(img_class=getattr(config, 'image_class'), pid=pid)
-        html = '<img id="{img_id}" class="{img_class}" src={src} width={width}>'.format(
+        html = '<img id="{img_id}" class="{img_class}" src="{src}" width="{width}">'.format(
             img_id=img_id, img_class=img_class, src=src, width=width
         )
         html += '</img>'

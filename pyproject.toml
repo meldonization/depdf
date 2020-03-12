@@ -1,9 +1,24 @@
 [tool.poetry]
 name = "depdf"
-version = "0.1.0"
+version = "0.1.1"
 description = "PDF table & paragraph extractor"
 authors = ["Meltonization <mengzy1989@gmail.com>"]
-license = "MIT"
+license = "GPL-3.0-or-later"
+readme = "README.md"
+homepage = "https://github.com/meldonization"
+repository = "https://github.com/meldonization/depdf"
+keywords = [
+    "pdf",
+    "pdf-parsing",
+    "pdf-to-html",
+    "table-extraction",
+    "paragraph-extraction"
+]
+classifiers = [
+    "Topic :: Text Processing :: Markup :: HTML",
+    "Topic :: Text Processing",
+    "Topic :: Utilities"
+]
 
 [tool.poetry.dependencies]
 python = "^3.6"

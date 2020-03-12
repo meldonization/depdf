@@ -10,15 +10,17 @@ class Paragraph(InnerWrapper, Box):
     object_type = 'paragraph'
 
     @check_config
-    def __init__(self, bbox=None, text='', pid=1, para_idx=1, config=None, inner_objects=None, style=None):
+    def __init__(self, bbox=None, text='', pid=1, para_idx=1, config=None, inner_objects=None, style=None, align=None):
         para_id = 'page-{pid}-paragraph-{para_id}'.format(pid=pid, para_id=para_idx)
         para_class = '{para_class} page-{pid}'.format(para_class=getattr(config, 'paragraph_class'), pid=pid)
-        style = construct_style(style=style)
-        html = '<p id="{para_id}" class="{para_class}"{style}>'.format(
-            para_id=para_id, para_class=para_class, style=style
+        style_text = construct_style(style=style)
+        align_text = ' align="{}"'.format(align) if align else ''
+        html = '<p id="{para_id}" class="{para_class}"{align_text}{style_text}>'.format(
+            para_id=para_id, para_class=para_class, style_text=style_text, align_text=align_text
         )
         self.pid = pid
         self.para_id = para_idx
+        self.config = config
         self.bbox = bbox
         if text:
             self.text = text
@@ -34,3 +36,7 @@ class Paragraph(InnerWrapper, Box):
 
     def __repr__(self):
         return '<depdf.Paragraph: ({}, {})>'.format(self.pid, self.para_id)
+
+    def save_html(self):
+        paragraph_file_name = '{}_page_{}_paragraph_{}.html'.format(self.config.unique_prefix, self.pid, self.para_id)
+        return super().write_to(paragraph_file_name)

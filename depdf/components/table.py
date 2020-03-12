@@ -45,6 +45,10 @@ class Table(Base, Box):
         ]
         return table_dict
 
+    def save_html(self):
+        table_file_name = '{}_page_{}_table_{}.html'.format(self.config.unique_prefix, self.pid, self.tid)
+        return super().write_to(table_file_name)
+
     @property
     def html(self):
         if not self._html and hasattr(self, 'to_html'):

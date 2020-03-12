@@ -14,7 +14,7 @@ class Span(Base, Box):
         self.bbox = bbox
         self.text = span_text
         span_class = getattr(config, 'span_class')
-        style = construct_style(style=style)
-        self.html = '<span class="{span_class}{style}">{span_text}</span>'.format(
-            span_class=span_class, span_text=span_text, style=style
+        style_text = construct_style(style=style)
+        self.html = '<span class="{span_class}"{style_text}>{span_text}</span>'.format(
+            span_class=span_class, span_text=span_text, style_text=style_text
         )

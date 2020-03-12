@@ -61,6 +61,10 @@ class Base(object):
     def soup(self):
         return convert_html_to_soup(self._html)
 
+    def write_to(self, file_name):
+        with open(file_name, "w") as file:
+            file.write(self.html)
+
     @property
     def to_dict(self):
         return {

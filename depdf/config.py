@@ -1,4 +1,5 @@
 from functools import wraps
+import os
 
 from depdf.base import Base
 from depdf.error import ConfigTypeError
@@ -43,6 +44,9 @@ class Config(Base):
     vertical_double_line_tolerance = DEFAULT_VERTICAL_DOUBLE_LINE_TOLERANCE  # used in page class
     table_cell_merge_tolerance = DEFAULT_TABLE_CELL_MERGE_TOLERANCE
     skip_empty_table = DEFAULT_SKIP_EMPTY_TABLE
+    add_vertical_lines_flag = DEFAULT_ADD_VERTICAL_LINES_FLAG
+    add_horizontal_lines_flag = DEFAULT_ADD_HORIZONTAL_LINES_FLAG
+    add_horizontal_line_tolerance = DEFAULT_ADD_HORIZONTAL_LINE_TOLERANCE
 
     # image
     min_image_size = DEFAULT_MIN_IMAGE_SIZE
@@ -73,6 +77,10 @@ class Config(Base):
         # add configuration parameters
         self.update(**kwargs)
         self._kwargs = kwargs
+
+        # create temporary folder
+        if not os.path.isdir(self.temp_dir_prefix):
+            os.mkdir(self.temp_dir_prefix)
 
         # set logging level by log_level parameter
         logging.getLogger('depdf').setLevel(self.log_level)

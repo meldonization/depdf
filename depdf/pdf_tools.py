@@ -33,9 +33,9 @@ def pdf_head_tail(pdf, config=None):
     ld_size = len(land_pages)
 
     def check_same(p1, p2, orientation=None, pure_text=False, same_text=None):
-        fpage = pdf.pages[p1].extract_words(x_tolerance=6, y_tolerance=6)
+        fpage = pdf.pages[p1].extract_words(x_tolerance=6, y_tolerance=6, keep_blank_chars=True)
         fpl = len(fpage)
-        spage = pdf.pages[p2].extract_words(x_tolerance=6, y_tolerance=6) if p2 else None
+        spage = pdf.pages[p2].extract_words(x_tolerance=6, y_tolerance=6, keep_blank_chars=True) if p2 else None
         spl = len(spage) if p2 else None
 
         def head_tail(s='head', pt=False, st=same_text):

@@ -1,10 +1,12 @@
 from collections import Counter
 from decimal import Decimal
 import re
+import os
 
-from depdf.components import Table, Cell
-from depdf.config import PDF_IMAGE_KEYS
+from depdf.components import Table, Cell, Image
+from depdf.config import PDF_IMAGE_KEYS, check_config
 from depdf.log import logger_init
+from depdf.utils import calc_overlap
 
 log = logger_init(__name__)
 PAGE_PORTRAIT = 'portrait'
@@ -134,10 +136,90 @@ def curve_to_lines(curves):
     return h_curves, v_curves
 
 
+def add_vertical_lines(v_lines, h_lines, page_rects, page, ave_cs):
+    page_width = page.width
+    extra_vl = []
+    if not page_rects:
+        return extra_vl
+    hls = [i['x0'] for i in h_lines if i['width'] > 3]  # horizontal lefts
+    vls = [i['x0'] for i in v_lines if i['height'] > 3]  # vertical lefts
+    hll = min(hls) if page_rects and hls else 0
+    vll = min(vls) if page_rects and vls else 0
+    if hll > vll:
+        return extra_vl
+    h_rects = [i for i in page_rects if i['height'] <= 5 and i['height'] < i['width']]
+    v_rects = [i for i in page_rects if i['width'] <= 5 and i['height'] > i['width']]
+    htr = [i['top'] for i in h_rects]
+    htr.extend([i['bottom'] for i in h_rects])
+    h_tops = sorted(set(htr))
+    htl = len(h_tops)
+    link_info = [False for i in range(len(h_tops))]  # is vertical line connects current horizontal line
+    for idx, i in enumerate(h_tops):
+        if idx == htl - 1:
+            break
+        if abs(i - h_tops[idx + 1]) <= 2 * ave_cs:
+            link_info[idx] = True
+            try:
+                sliced_cell = page.crop([0, i, page_width, h_tops[idx + 1]])
+                if sliced_cell.rect_edges + sliced_cell.lines:
+                    continue
+            except:
+                continue
+        for j in v_rects:
+            overlap_length = calc_overlap([j['top'], j['bottom']], [i, h_tops[idx + 1]])
+            if j['height'] > ave_cs and overlap_length > abs(h_tops[idx + 1] - i) / 3:
+                link_info[idx] = True
+                break
+    link_trigger, l_top = False, h_tops[0] if h_tops else 0
+    for idx, i in enumerate(h_tops):
+        if link_info[idx]:
+            link_trigger = True
+        if not link_trigger:
+            continue
+        if link_info[idx]:
+            if not link_info[idx - 1]:
+                l_top = i
+        elif link_info[idx - 1]:
+            l_bottom = i
+            h_left = min([j['x0'] for j in h_rects if j['top'] >= l_top and j['bottom'] <= l_bottom])
+            h_right = max([j['x1'] for j in h_rects if j['top'] >= l_top and j['bottom'] <= l_bottom])
+            extra_vl.extend([
+                {'orientation': 'v', 'x0': h_left, 'x1': h_left, 'top': l_top, 'bottom': l_bottom},
+                {'orientation': 'v', 'x0': h_right, 'x1': h_right, 'top': l_top, 'bottom': l_bottom},
+            ])
+
+
+def add_horizontal_lines(v_lines, h_lines, vlts_tolerance=0.1):
+    extra_hl = []
+    # 补表格顶部缺失的横线
+    vlts = [i['top'] for i in v_lines if 'height' in i and i['height'] > 3]
+    vltls = [i for i in v_lines if abs(i['top'] - min(vlts)) < vlts_tolerance] if vlts else []
+    vhls = [i for i in h_lines if i['width'] > 3 and abs(i['top'] - min(vlts)) < vlts_tolerance] if vlts else []
+    if vltls and vhls:
+        vhlsl, vhlsr = min([i['x0'] for i in vhls]), max([i['x1'] for i in vhls])
+        vltl, vltr = min([i['x0'] for i in vltls]), max([i['x1'] for i in vltls])
+        if abs(vhlsl - vltl) > vlts_tolerance or abs(vhlsr - vltr) > vlts_tolerance:
+            extra_hl.append({'orientation': 'h', 'x0': vltl, 'x1': vltr, 'top': min(vlts), 'bottom': min(vlts)})
+    # 补表格底部缺失的横线
+    vl_bs = [i["bottom"] for i in v_lines if "height" in i and i["height"] > 3]
+    vl_bls = [i for i in v_lines if abs(i["bottom"] - max(vl_bs)) < vlts_tolerance] if vl_bs else []
+    vhls = [
+        i for i in h_lines
+        if "width" in i and i["width"] > 3 and abs(i["bottom"] - max(vl_bs)) < vlts_tolerance
+    ] if vl_bs else []
+    if vl_bs and vhls:
+        vhlsl, vhlsr = min([i['x0'] for i in vhls]), max([i['x1'] for i in vhls])
+        vl_bl, vl_br = min([i['x0'] for i in vl_bls]), max([i['x1'] for i in vl_bls])
+        if abs(vhlsl - vl_bl) > vlts_tolerance or abs(vhlsr - vl_br) > vlts_tolerance:
+            extra_hl.append({'orientation': 'h', 'x0': vl_bl, 'x1': vl_br, 'top': max(vl_bs), 'bottom': max(vl_bs)})
+    return extra_hl
+
+
+@check_config
 def convert_plumber_table(pdf_page, table, pid=1, tid=1, config=None, min_cs=1, ave_cs=6):
     if table is None:
         return None
-    table_rows = []
+    cid, table_rows = 0, []
     for row in table.rows:
         table_row = []
         table_row_dict = []
@@ -157,15 +239,34 @@ def convert_plumber_table(pdf_page, table, pid=1, tid=1, config=None, min_cs=1, 
                           x['x0'] >= cell[0] - (x['x1'] - x['x0']) / 2 and
                           x['x1'] <= cell[2] + (x['x1'] - x['x0']) / 2
             )
+            cid += 1
             text = cell_region.extract_text(y_tolerance=ave_cs * 2 / 3)
-            text = text.strip().replace('\n', '<br>') if text else ''
-            text = '……' if text == '„„' else text
             bbox = (cell[0], cell[1], cell[2], cell[3])
             table_row_dict.append({'width': c_w, 'height': c_h, 'text': text})
-            table_row.append(Cell(bbox=bbox, text=text))
+            cell_obj = extract_cell_region(cell_region, bbox, ave_cs=ave_cs, config=config, pid=pid, tid=tid, cid=cid)
+            table_row.append(cell_obj)
         if table_row_dict and not all(v is None for v in table_row_dict):
             table_rows.append(table_row)
     return Table(table_rows, pid=pid, tid=tid, config=config)
+
+
+@check_config
+def extract_cell_region(cell_region, bbox, ave_cs=12, config=None, pid=1, tid=1, cid=1):
+    temp_dir = config.temp_dir_prefix
+    prefix = config.unique_prefix
+    res = config.resolution
+    if cell_region.images or cell_region.figures or cell_region.extract_tables():
+        img_file = os.path.join(temp_dir, prefix + '_{}_table_{}_cell_{}_image.png'.format(pid, tid, cid))
+        pic = cell_region.crop(bbox).to_image(resolution=res)
+        pic.save(img_file, format='png')
+        image = Image(bbox=bbox, src=img_file, pid=pid, config=config, scan=False)
+        cell = Cell(bbox=bbox, inner_objects=[image])
+    else:
+        text = cell_region.extract_text(y_tolerance=ave_cs * 2 / 3)
+        text = text.strip().replace('\n', '<br>') if text else ''
+        text = '……' if text == '„„' else text
+        cell = Cell(bbox=bbox, text=text)
+    return cell
 
 
 def merge_page_figures(pdf_page, tables_raw=None, logo=None, min_width=3, min_height=3, pid=1):

@@ -43,9 +43,16 @@ class DePDF(Base):
 
     @classmethod
     @check_config
-    def open(cls, file_name, config=None, **kwargs):
+    def load(cls, file_name, config=None, **kwargs):
         plumber_pdf = pdfplumber.open(file_name, **kwargs)
         return cls(plumber_pdf, config=config, **kwargs)
+
+    @classmethod
+    def open(cls, *args, **kwargs):
+        return cls.load(*args, **kwargs)
+
+    def save_html(self):
+        return super().write_to(self.prefix + '.html')
 
     @property
     def config(self):
@@ -94,7 +101,7 @@ class DePDF(Base):
     def generate_pages(self):
         pages = [
             DePage(page, pid=pid + 1, same=self.same, logo=self.logo)
-            for page, pid in enumerate(self.pdf.pages)
+            for pid, page in enumerate(self.pdf.pages)
         ]
         return pages
 
