@@ -21,7 +21,7 @@ def pdf_head_tail(pdf, config=None):
     :return: PDF 文件的页眉和页脚
     """
     offset = getattr(config, 'default_head_tail_page_offset_percent')
-    same_diff_tolerance = Decimal(0.5)  # todo parameter
+    same_diff_tolerance = Decimal('0.5')  # todo parameter
     page_1, page_2 = 0, 1  # 需要拿来对比页眉和页脚的页码  # todo parameter
     same = []
     page_num = len(pdf.pages)
@@ -44,7 +44,7 @@ def pdf_head_tail(pdf, config=None):
             end = min(fpl, sps) if s == 'head' else min(fpl, sps) + 1
             for i in range(start, end):
                 k = i if s == 'head' else -i
-                if abs(fpage[k]['top'] / pdf.pages[p1].height - Decimal(0.5)) <= Decimal(0.5 - offset):
+                if abs(fpage[k]['top'] / pdf.pages[p1].height - Decimal('0.5')) <= Decimal('0.5') - Decimal(offset):
                     break
                 fpc = fpage[k]['text'] if pt else fpage[k]
                 if st:

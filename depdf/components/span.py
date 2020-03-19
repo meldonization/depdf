@@ -1,7 +1,7 @@
 from depdf.base import Base, Box
 from depdf.config import check_config
 from depdf.log import logger_init
-from depdf.utils import construct_style
+from depdf.utils import construct_style, repr_str
 
 log = logger_init(__name__)
 
@@ -18,3 +18,6 @@ class Span(Base, Box):
         self.html = '<span class="{span_class}"{style_text}>{span_text}</span>'.format(
             span_class=span_class, span_text=span_text, style_text=style_text
         )
+
+    def __repr__(self):
+        return '<depdf.Span: {}>'.format(repr_str(self.text))

@@ -1,10 +1,8 @@
 from collections import Counter
 from decimal import Decimal
 import re
-import os
 
-from depdf.components import Table, Cell, Image
-from depdf.config import PDF_IMAGE_KEYS, check_config
+from depdf.config import PDF_IMAGE_KEYS
 from depdf.log import logger_init
 from depdf.utils import calc_overlap
 
@@ -70,8 +68,8 @@ def analyze_page_orientation(plumber_page):
     return orientation
 
 
-def analyze_page_num_word(phrases, page_height, page_width, top_fraction=Decimal(0.7),
-                          left_fraction=Decimal(0.4), right_fraction=Decimal(0.6)):
+def analyze_page_num_word(phrases, page_height, page_width, top_fraction=Decimal('0.7'),
+                          left_fraction=Decimal('0.4'), right_fraction=Decimal('0.6')):
     pagination_phrases = []
     if phrases and PAGE_NUM_RE.findall(phrases[-1]['text']):
         for phrase in reversed(phrases):
@@ -215,61 +213,7 @@ def add_horizontal_lines(v_lines, h_lines, vlts_tolerance=0.1):
     return extra_hl
 
 
-@check_config
-def convert_plumber_table(pdf_page, table, pid=1, tid=1, config=None, min_cs=1, ave_cs=6):
-    if table is None:
-        return None
-    cid, table_rows = 0, []
-    for row in table.rows:
-        table_row = []
-        table_row_dict = []
-        for cell in row.cells:
-            if not cell:
-                table_row.append(cell)
-                table_row_dict.append(cell)
-                continue
-            c_w = cell[2] - cell[0]
-            c_h = cell[3] - cell[1]
-            if c_w < min_cs or c_h < min_cs:
-                continue
-            cell_region = pdf_page.filter(
-                lambda x: 'top' in x and 'bottom' in x and 'x0' in x and 'x1' in x and
-                          x['top'] >= cell[1] - (x['bottom'] - x['top']) / 2 and
-                          x['bottom'] <= cell[3] + (x['bottom'] - x['top']) / 2 and
-                          x['x0'] >= cell[0] - (x['x1'] - x['x0']) / 2 and
-                          x['x1'] <= cell[2] + (x['x1'] - x['x0']) / 2
-            )
-            cid += 1
-            text = cell_region.extract_text(y_tolerance=ave_cs * 2 / 3)
-            bbox = (cell[0], cell[1], cell[2], cell[3])
-            table_row_dict.append({'width': c_w, 'height': c_h, 'text': text})
-            cell_obj = extract_cell_region(cell_region, bbox, ave_cs=ave_cs, config=config, pid=pid, tid=tid, cid=cid)
-            table_row.append(cell_obj)
-        if table_row_dict and not all(v is None for v in table_row_dict):
-            table_rows.append(table_row)
-    return Table(table_rows, pid=pid, tid=tid, config=config)
-
-
-@check_config
-def extract_cell_region(cell_region, bbox, ave_cs=12, config=None, pid=1, tid=1, cid=1):
-    temp_dir = config.temp_dir_prefix
-    prefix = config.unique_prefix
-    res = config.resolution
-    if cell_region.images or cell_region.figures or cell_region.extract_tables():
-        img_file = os.path.join(temp_dir, prefix + '_{}_table_{}_cell_{}_image.png'.format(pid, tid, cid))
-        pic = cell_region.crop(bbox).to_image(resolution=res)
-        pic.save(img_file, format='png')
-        image = Image(bbox=bbox, src=img_file, pid=pid, config=config, scan=False)
-        cell = Cell(bbox=bbox, inner_objects=[image])
-    else:
-        text = cell_region.extract_text(y_tolerance=ave_cs * 2 / 3)
-        text = text.strip().replace('\n', '<br>') if text else ''
-        text = '……' if text == '„„' else text
-        cell = Cell(bbox=bbox, text=text)
-    return cell
-
-
-def merge_page_figures(pdf_page, tables_raw=None, logo=None, min_width=3, min_height=3, pid=1):
+def merge_page_figures(pdf_page, tables_raw=None, logo=None, min_width=3, min_height=3, pid='1'):
     logo_figures, figures_in_table = [], []
     fig_merge = pdf_page.figures
     figures_ori = pdf_page.images
@@ -364,4 +308,4 @@ def calculate_paragraph_border(depdf_page_object):
 
 
 def format_text(text):
-    return text.strip().replace('\xa0', '')
+    return text.strip().replace('\xa0', '').replace('\n', '')

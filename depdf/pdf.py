@@ -100,7 +100,7 @@ class DePDF(Base):
 
     def generate_pages(self):
         pages = [
-            DePage(page, pid=pid + 1, same=self.same, logo=self.logo)
+            DePage(page, pid=str(pid + 1), same=self.same, logo=self.logo)
             for pid, page in enumerate(self.pdf.pages)
         ]
         return pages

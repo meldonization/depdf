@@ -1,7 +1,7 @@
 from depdf.base import Box, InnerWrapper
 from depdf.config import check_config
 from depdf.log import logger_init
-from depdf.utils import calc_bbox, construct_style
+from depdf.utils import calc_bbox, construct_style, repr_str
 
 log = logger_init(__name__)
 
@@ -10,7 +10,7 @@ class Paragraph(InnerWrapper, Box):
     object_type = 'paragraph'
 
     @check_config
-    def __init__(self, bbox=None, text='', pid=1, para_idx=1, config=None, inner_objects=None, style=None, align=None):
+    def __init__(self, bbox=None, text='', pid='1', para_idx=1, config=None, inner_objects=None, style=None, align=None):
         para_id = 'page-{pid}-paragraph-{para_id}'.format(pid=pid, para_id=para_idx)
         para_class = '{para_class} page-{pid}'.format(para_class=getattr(config, 'paragraph_class'), pid=pid)
         style_text = construct_style(style=style)
@@ -35,7 +35,9 @@ class Paragraph(InnerWrapper, Box):
         self.html = html
 
     def __repr__(self):
-        return '<depdf.Paragraph: ({}, {})>'.format(self.pid, self.para_id)
+        if hasattr(self, 'text'):
+            return '<depdf.Paragraph: ({}, {}) {}>'.format(self.pid, self.para_id, repr_str(self.text))
+        return '<depdf.Paragraph[InnerObjects]: ({}, {})>'.format(self.pid, self.para_id)
 
     def save_html(self):
         paragraph_file_name = '{}_page_{}_paragraph_{}.html'.format(self.config.unique_prefix, self.pid, self.para_id)

@@ -6,8 +6,8 @@ from depdf.settings import DEFAULT_HTML_PARSER
 log = logger_init(__name__)
 
 
-def convert_html_to_soup(html):
-    return BeautifulSoup(str(html), DEFAULT_HTML_PARSER)
+def convert_html_to_soup(html, parser=DEFAULT_HTML_PARSER):
+    return BeautifulSoup(str(html), parser)
 
 
 def convert_soup_to_html(soup):
@@ -64,3 +64,8 @@ def construct_style(style=None):
     style_list = ['{}: {};'.format(k, v) for k, v in style.items()]
     style_string = ' style="{}"'.format(' '.join(style_list))
     return style_string
+
+
+def repr_str(text, max_length=5):
+    repr_text = text[:max_length] + ' ...' if len(text) > max_length else text
+    return '"{}"'.format(repr_text)

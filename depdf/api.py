@@ -31,46 +31,46 @@ def api_load_pdf(api_func):
 
 
 @api_load_pdf
-def convert_pdf_to_html(pdf_file, **kwargs):
+def convert_pdf_to_html(pdf, **kwargs):
     """
-    :param pdf_file: pdf file absolute path
+    :param pdf: pdf file path
     :param kwargs: config keyword arguments
-    :return:
+    :return: pdf html string
     """
-    return pdf_file.html
+    return pdf.html
 
 
 @api_load_pdf
-def convert_page_to_html(pdf_file, pid, **kwargs):
+def convert_page_to_html(pdf, pid, **kwargs):
     """
-    :param pdf_file: pdf file absolute path
+    :param pdf: pdf file path
     :param pid: page number start from 1
     :param kwargs: config keyword arguments
-    :return:
+    :return: page html string
     """
-    page = pdf_file.pages[pid - 1]
+    page = DePage(pdf.pdf.pages[pid - 1], pid=pid, same=pdf.same, logo=pdf.logo, config=pdf.config)
     return page.html
 
 
 @api_load_pdf
-def extract_page_tables(pdf_file, pid, **kwargs):
+def extract_page_tables(pdf, pid, **kwargs):
     """
-    :param pdf_file: pdf file absolute path
+    :param pdf: pdf file path
     :param pid: page number start from 1
     :param kwargs: config keyword arguments
-    :return:
+    :return: page tables list
     """
-    page = pdf_file.pages[pid - 1]
+    page = DePage(pdf.pdf.pages[pid - 1],  pid=pid, same=pdf.same, logo=pdf.logo, config=pdf.config)
     return page.tables
 
 
 @api_load_pdf
-def extract_page_paragraphs(pdf_file, pid, **kwargs):
+def extract_page_paragraphs(pdf, pid, **kwargs):
     """
-    :param pdf_file: pdf file absolute path
+    :param pdf: pdf file path
     :param pid: page number start from 1
     :param kwargs: config keyword arguments
-    :return:
+    :return: page paragraphs list
     """
-    page = pdf_file.pages[pid - 1]
+    page = DePage(pdf.pdf.pages[pid - 1], pid=pid, same=pdf.same, logo=pdf.logo, config=pdf.config)
     return page.paragraphs

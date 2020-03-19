@@ -1,7 +1,7 @@
 from decimal import Decimal
 
-from depdf.utils import convert_html_to_soup
 from depdf.error import BoxValueError
+from depdf.utils import convert_html_to_soup, repr_str
 
 
 class Box(object):
@@ -49,6 +49,9 @@ class Base(object):
     _cached_properties = ['_html']
     _html = ''
 
+    def __repr__(self):
+        return '<depdf.Base: {}>'.format(repr_str(self.soup.text))
+
     @property
     def html(self):
         return self._html
@@ -61,6 +64,9 @@ class Base(object):
     def soup(self):
         return convert_html_to_soup(self._html)
 
+    def to_soup(self, parser):
+        return convert_html_to_soup(self._html, parser=parser)
+
     def write_to(self, file_name):
         with open(file_name, "w") as file:
             file.write(self.html)
@@ -69,7 +75,7 @@ class Base(object):
     def to_dict(self):
         return {
             i: getattr(self, i, None) for i in dir(self)
-            if not i.startswith('_') and i != 'to_dict'
+            if not i.startswith('_') and i not in ['to_dict', 'refresh', 'reset', 'write_to', 'to_soup']
         }
 
     def _get_cached_property(self, key, calculate_function, *args, **kwargs):
@@ -101,4 +107,8 @@ class InnerWrapper(Base):
 
     @property
     def inner_objects(self):
+        return self._inner_objects
+
+    @property
+    def to_dict(self):
         return [obj.to_dict if hasattr(obj, 'to_dict') else obj for obj in self._inner_objects]

@@ -1,11 +1,12 @@
+import os
 from statistics import mean, median
 import uuid
 
 from pdfplumber.page import Page
 
 from depdf.base import Base
-from depdf.components import Paragraph, Text, Span
-from depdf.config import check_config_type
+from depdf.components import Paragraph, Text, Span, Image, Table, Cell
+from depdf.config import check_config, check_config_type
 from depdf.error import PageTypeError
 from depdf.page_tools import *
 
@@ -49,25 +50,30 @@ class DePage(Base):
     toc_flag = False
 
     @check_config
-    def __init__(self, page, pid=1, same=None, logo=None, config=None):
+    def __init__(self, page, pid='1', same=None, logo=None, config=None, columns=1, mini=False):
         """
         :param page: pdfplumber page object
         :param pid: page number start from 1
         :param same: header & footer
         :param logo: watermark and logo
         :param config: depdf config
+        :param columns: page column number
+        :param mini: if page is mini
         """
         check_page_type(page)
         self._page = page
-        self._pid = int(pid)
+        self._pid = pid
+        self.columns = columns
+        self.mini = mini
         check_config_type(config)
         self._config = config
-        self.same = same or []
-        self.same_tmp = [{k: v for k, v in i.items() if k != 'mode'} for i in same]
-        self.logo = logo or []
+        self.same = same if same else []
+        self.same_tmp = [{k: v for k, v in i.items() if k != 'mode'} for i in self.same]
+        self.logo = logo if logo else []
         self.frame_bottom = self.width
         self.border = (0, self.width, 0, self.height)
         self.set_global()
+        self.multi_column_separator = self.check_multi_column_page()
 
     def __repr__(self):
         return '<depdf.DePage: ({}, {})>'.format(self.prefix, self.pid)
@@ -103,7 +109,7 @@ class DePage(Base):
     @pid.setter
     def pid(self, value):
         self.refresh()
-        self._pid = int(value)
+        self._pid = value
 
     @property
     def page(self):
@@ -130,7 +136,7 @@ class DePage(Base):
     @property
     def screenshot(self):
         screenshot = self._get_cached_property('_screenshot', self.to_screenshot)
-        return screenshot.original
+        return screenshot
 
     @property
     def chars(self):
@@ -138,7 +144,10 @@ class DePage(Base):
 
     @property
     def objects(self):
-        object_list = self._get_cached_property('_objects', self.process_page)
+        if self.multi_column_separator:
+            object_list = self._get_cached_property('_objects', self.process_mini_page)
+        else:
+            object_list = self._get_cached_property('_objects', self.process_page)
         return object_list
 
     @property
@@ -183,6 +192,45 @@ class DePage(Base):
             html += getattr(obj, 'html', '')
         html += '</div>'
         return html
+
+    def check_multi_column_page(self):
+        separator = []
+        mcf = getattr(self.config, 'multiple_columns_flag')
+        if not mcf or self.columns > 1 or self.mini:
+            return separator
+        mmc = getattr(self.config, 'max_columns')
+        mcr_hw = getattr(self.config, 'column_region_half_width')
+        mcr_on = getattr(self.config, 'min_column_region_objects')
+        for column_number in range(2, int(mmc) + 1):
+            column_size = self.width / column_number
+            for i in range(1, column_number):
+                s = column_size * i
+                check_bbox = (s - mcr_hw, 0, s + mcr_hw, self.height)
+                column_region = self.page.crop(check_bbox)
+                items = []
+                for k in column_region.objects:
+                    items.extend(column_region.objects[k])
+                if len(items) <= mcr_on:
+                    separator.append(s)
+            if separator:
+                if len(separator) != column_number - 1:
+                    separator = []
+                break
+        self.columns = len(separator) + 1
+        return separator
+
+    def process_mini_page(self):
+        object_list = []
+        mis = getattr(self.config, 'min_image_size')
+        separator_list = [0] + self.multi_column_separator + [self.width]
+        for sid in range(len(separator_list) - 1):
+            bbox = (separator_list[sid], 0, separator_list[sid + 1], self.height)
+            mini_column = self.page.crop(bbox)
+            config = self.config.copy(min_image_size=mis/len(self.multi_column_separator))
+            mini_page = MiniDePage(mini_column, pid='{}.{}'.format(self.pid, sid + 1),
+                                   config=config, columns=self.columns, mini=True)
+            object_list.append(mini_page)
+        return object_list
 
     def process_page(self):
         if self.verbose:
@@ -294,11 +342,6 @@ class DePage(Base):
 
     def analyze_lines(self):
         rect_edges_raw = self.page.edges
-        try:
-            rect_edges_raw = self.page.within_bbox((1, 1, self.width - 1, self.height - 1)).edges
-        except Exception as e:
-            if self.verbose:
-                log.error('analyze_lines error: {}'.format(e))
         h_lines, v_lines = edges_to_lines(rect_edges_raw)
 
         # 去除特别细的单线（干扰线）
@@ -370,8 +413,7 @@ class DePage(Base):
             img_file = os.path.join(self.temp_dir, self.prefix + '_table_cell_border_{0}.png'.format(self.pid))
             page_image.save(img_file, format='png')
         table_clean = [
-            convert_plumber_table(self.page, table, pid=self.pid, tid=tid + 1, config=self.config,
-                                  min_cs=self.min_cs, ave_cs=self.ave_cs)
+            convert_plumber_table(self.page, table, pid=self.pid, tid=tid + 1, config=self.config, min_cs=self.min_cs)
             for tid, table in enumerate(tables_raw)
         ]
         self._tables = [i for i in table_clean if i is not None]
@@ -386,7 +428,7 @@ class DePage(Base):
             log.info('{0} / page-{1} figure count: {2}'.format(self.prefix, self.pid, len(images_raw)))
 
         mis = getattr(self.config, 'min_image_size')
-        res = getattr(self.config, 'resolution')
+        res = getattr(self.config, 'image_resolution')
         images = []
         for fid, i in enumerate(images_raw):
             if i['height'] <= mis or i['width'] <= mis:
@@ -397,7 +439,9 @@ class DePage(Base):
             pic = image.to_image(resolution=res)
             pic.save(img_file, format='png')
             scan = i['width'] * i['height'] / self.width / self.height >= 0.7
-            image = Image(bbox=bbox, src=img_file, pid=self.pid, img_idx=fid + 1, config=self.config, scan=scan)
+            percent = round((bbox[2] - bbox[0]) * self.columns / self.width * 100)
+            image = Image(bbox=bbox, percent=percent, src=img_file, pid=self.pid,
+                          img_idx=fid + 1, config=self.config, scan=scan)
             images.append(image)
         self._images = images
         if self.debug and images_raw:
@@ -445,6 +489,8 @@ class DePage(Base):
             bbox = i['x0'], i['top'], i['x1'], i['bottom']
             left, top, right, bottom = bbox
             text = format_text(i['text']) if i['text'] else ''
+            if not text:
+                continue
 
             if not paragraphs:
                 new_para_flag = True
@@ -487,18 +533,18 @@ class DePage(Base):
 
             if not para_style:
                 if abs(ave_ts - ave_cs) / ave_cs >= 0.3:
-                    para_style.update({'font-size': '{0}px;'.format(ave_ts)})
+                    para_style.update({'font-size': '{0}px;'.format(round(ave_ts))})
                 if center_flag:
                     para_style.update({'align': 'center'})
                 elif div_flag:
-                    para_style.update({'margin-left': '{0}px'.format((left - ll))})
+                    para_style.update({'margin-left': '{0}px'.format(round(left - ll))})
                     if right_flag:
                         para_style.update({'align': 'right'})
 
             if new_line_flag:
                 paragraph_objects.append(Text(bbox=bbox, text=text))
             else:
-                span_style = {'margin-left': '{0}px'.format((left - p_left))}
+                span_style = {'margin-left': '{0}px'.format(round(left - p_left))}
                 paragraph_objects.append(Span(bbox=bbox, span_text=text, config=self.config, style=span_style))
 
             p_left, p_top, p_right, p_bottom = left, top, right, bottom
@@ -507,12 +553,12 @@ class DePage(Base):
         if paragraph_objects:
             para_style = {}
             if abs(ave_ts - ave_cs) / ave_cs >= 0.3:
-                para_style.update({'font-size': '{0}px;'.format(ave_ts)})
+                para_style.update({'font-size': '{0}px;'.format(round(ave_ts))})
             if center_flag:
                 para_style.update({'align': 'center'})
             elif div_flag:
                 para_style.update({'align': 'left'})
-                para_style.update({'margin-left': '{0}px'.format((left - ll))})
+                para_style.update({'margin-left': '{0}px'.format(round(left - ll))})
             paragraphs.append(Paragraph(
                 pid=self.pid, para_idx=para_idx, config=self.config,
                 inner_objects=paragraph_objects, style=para_style
@@ -532,6 +578,74 @@ class DePage(Base):
         self._paragraphs = paragraphs
         self.new_para_start_flag = new_para_start_flag
         self.new_para_end_flag = new_para_end_flag
+
+
+class MiniDePage(DePage):
+
+    def save_html(self):
+        mini_page_file_name = '{}_mini_page_{}.html'.format(self.prefix, self.pid)
+        return super().write_to(mini_page_file_name)
+
+    @property
+    def to_html(self):
+        mini_page_class = getattr(self.config, 'mini_page_class')
+        html = '<div id="mini-page-{}" class="{}" new_para_start="{}" new_para_end="{}">'.format(
+            self.pid, mini_page_class, self.new_para_start_flag, self.new_para_end_flag
+        )
+        for obj in self.objects:
+            html += getattr(obj, 'html', '')
+        html += '</div>'
+        return html
+
+
+@check_config
+def convert_plumber_table(pdf_page, table, pid='1', tid=1, config=None, min_cs=1):
+    if table is None:
+        return None
+    cid, table_rows = 0, []
+    for row in table.rows:
+        table_row = []
+        table_row_dict = []
+        for cell in row.cells:
+            if not cell:
+                table_row.append(cell)
+                table_row_dict.append(cell)
+                continue
+            c_w = cell[2] - cell[0]
+            c_h = cell[3] - cell[1]
+            if c_w < min_cs or c_h < min_cs:
+                continue
+            cell_region = pdf_page.filter(
+                lambda x: 'top' in x and 'bottom' in x and 'x0' in x and 'x1' in x and
+                          x['top'] >= cell[1] - (x['bottom'] - x['top']) / 2 and
+                          x['bottom'] <= cell[3] + (x['bottom'] - x['top']) / 2 and
+                          x['x0'] >= cell[0] - (x['x1'] - x['x0']) / 2 and
+                          x['x1'] <= cell[2] + (x['x1'] - x['x0']) / 2
+            )
+            cid += 1
+            text = cell_region.extract_text()
+            bbox = (cell[0], cell[1], cell[2], cell[3])
+            table_row_dict.append({'width': c_w, 'height': c_h, 'text': text})
+            cell_obj = extract_cell_region(cell_region, bbox, config=config, pid=pid, tid=tid, cid=cid)
+            table_row.append(cell_obj)
+        if table_row_dict and not all(v is None for v in table_row_dict):
+            table_rows.append(table_row)
+    return Table(table_rows, pid=pid, tid=tid, config=config)
+
+
+@check_config
+def extract_cell_region(cell_region, bbox, config=None, pid='1', tid=1, cid=1):
+    if cell_region.images or cell_region.figures or cell_region.extract_tables():
+        config = config.copy(min_image_size=0)
+        mini_pid = '{}.{}.{}'.format(pid, tid, cid)
+        mini_page = MiniDePage(cell_region, pid=mini_pid, config=config, mini=True)
+        cell = Cell(bbox=bbox, inner_objects=[mini_page])
+    else:
+        text = cell_region.extract_text()
+        text = text.strip().replace('\n', '<br>') if text else ''
+        text = '……' if text == '„„' else text
+        cell = Cell(bbox=bbox, text=text)
+    return cell
 
 
 def check_page_type(page):

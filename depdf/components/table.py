@@ -1,7 +1,7 @@
 from depdf.base import Base, Box, InnerWrapper
 from depdf.config import check_config
 from depdf.log import logger_init
-from depdf.utils import calc_bbox
+from depdf.utils import calc_bbox, repr_str
 
 log = logger_init(__name__)
 
@@ -19,12 +19,17 @@ class Cell(InnerWrapper, Box):
             for obj in inner_objects:
                 self.html += getattr(obj, 'html', '')
 
+    def __repr__(self):
+        if hasattr(self, 'text'):
+            return '<depdf.TableCell: {}>'.format(repr_str(self.text))
+        return '<depdf.TableCell[InnerObjects]: {}>'.format(str(tuple(self.bbox)))
+
 
 class Table(Base, Box):
     object_type = 'table'
 
     @check_config
-    def __init__(self, rows, pid=1, tid=1, config=None, bbox=None):
+    def __init__(self, rows, pid='1', tid=1, config=None, bbox=None):
         self.pid = pid
         self.tid = tid
         self.rows = rows
@@ -81,7 +86,7 @@ def gen_column_cell_sizes(t):
     return cell_num, cell_sizes
 
 
-def convert_table_to_html(table_dict, pid=1, tid=1, tc_mt=5, table_class='pdf-table', skip_et=False):
+def convert_table_to_html(table_dict, pid='1', tid=1, tc_mt=5, table_class='pdf-table', skip_et=False):
     empty_table_html = ''
     none_text_table = True
     html_table_string = '<table id="page-{pid}-table-{tid}" class="{table_class} page-{pid}">'.format(
