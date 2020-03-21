@@ -3,3 +3,6 @@
 __pycache__
 *.py[cod]
 temp_depdf/
+docs/_build
+token.txt
+dist

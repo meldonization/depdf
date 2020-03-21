@@ -4,6 +4,9 @@ An ultimate pdf file disintegration tool. DePDF is designed to extract tables an
 
 Built on top of [`pdfplumber`](https://github.com/jsvine/pdfplumber)
 
+Checkout automatically generated [documentation](https://depdf.readthedocs.io/en/latest/index.html) if you wish.
+
+
 # Table of Contents
 [toc]
 
@@ -203,7 +206,7 @@ print(page_soup.text)
 # Update log
 
 * `2020-03-18` add support for multiple-column PDFs
-* `2020-03-12` initial depdf realease
+* `2020-03-12` initial depdf release
 
 
 # Appendix
@@ -214,6 +217,42 @@ print(page_soup.text)
 * [x] better table structure recognition
 * [x] recognize embedded objects inside page elements
 
+## Project overview
+
+```bash
+.
+├── depdf
+│   ├── components
+│   │   ├── image.py
+│   │   ├── paragraph.py
+│   │   ├── span.py
+│   │   ├── table.py
+│   │   └── text.py
+│   ├── api.py
+│   ├── base.py
+│   ├── config.py
+│   ├── error.py
+│   ├── log.py
+│   ├── page.py
+│   ├── page_tools.py
+│   ├── pdf.py
+│   ├── pdf_tools.py
+│   ├── settings.py
+│   ├── utils.py
+│   └── version.py
+├── test
+│   ├── test.html
+│   ├── test.pdf
+│   ├── test.py
+│   └── test_mc.pdf
+├── LICENSE
+├── README.md
+├── annotations.jpg
+└── pyproject.toml
+
+4 directories, 33 files
+
+```
 
 ## DePage element denotations
 > Useful element properties within page
