@@ -295,15 +295,43 @@ class DePage(Base):
         self.x_tolerance = Decimal(cxt) if cxt is not None else self.ave_cs * 3 / 2
 
     def analyze_main_frame(self):
+        original_keys = ['x0', 'top', 'x1', 'bottom', 'text']
+        same_head_original = [
+            {k: i[k] for k in i if k in original_keys}
+            for i in self.same if i['mode'] == self.orientation and i['level'] == 'head'
+        ]
+        same_tail_original = [
+            {k: i[k] for k in i if k in original_keys}
+            for i in self.same if i['mode'] == self.orientation and i['level'] == 'tail'
+        ]
+        # top_line's bottom
+        tls = [i['bottom'] for i in self.same if i['mode'] == self.orientation and i['level'] == 'head']
+        # bottom_line's tops
+        bls = [i['top'] for i in self.same if i['mode'] == self.orientation and i['level'] == 'tail']
+        main_top, main_bottom = 0, self.height
+        if tls:
+            main_top = max_tls = max(tls)
+            head_words = self.page.within_bbox((0, 0, self.width, max_tls)).extract_words()
+            if not head_words:
+                main_top = 0
+            for h_w in head_words:
+                if h_w not in same_head_original:
+                    main_top = 0
+                    break
+        if bls:
+            main_bottom = min_bls = min(bls)
+            tail_words = self.page.within_bbox((0, min_bls, self.width, self.height)).extract_words()
+            if not tail_words:
+                main_bottom = self.height
+            for t_w in tail_words:
+                if t_w not in same_tail_original:
+                    main_bottom = self.height
+                    break
         mft = getattr(self.config, 'main_frame_tolerance')
         if mft is None:
-            mft = Decimal(self.ave_cs / 2)
-        # top_line's bottoms
-        tl_bs = [i['bottom'] + mft for i in self.same if i['mode'] == self.orientation and i['level'] == 'head']
-        # bottom_line's tops
-        bl_ts = [i['top'] for i in self.same if i['mode'] == self.orientation and i['level'] == 'tail']
-        self.frame_top = max(tl_bs) if tl_bs else 0
-        self.frame_bottom = min(bl_ts) if bl_ts else self.height
+            mft = Decimal(self.ave_cs / 4)
+        self.frame_top, self.frame_bottom = main_top + mft, main_bottom
+        return main_top, main_bottom
 
     def extract_phrases(self):
         phrases = [
