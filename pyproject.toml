@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "depdf"
-version = "0.2.0"
+version = "0.2.1"
 description = "PDF table & paragraph extractor"
 authors = ["Meltonization <mengzy1989@gmail.com>"]
 license = "GPL-3.0-or-later"
