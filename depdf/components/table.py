@@ -24,6 +24,11 @@ class Cell(InnerWrapper, Box):
             return '<depdf.TableCell: {}>'.format(repr_str(self.text))
         return '<depdf.TableCell[InnerObjects]: {}>'.format(str(tuple(self.bbox)))
 
+    @property
+    def to_dict(self):
+        attrs = ['bbox', 'height', 'html', 'inner_objects', 'object_type', 'soup', 'width']
+        return {k: getattr(self, k, None) for k in attrs}
+
 
 class Table(Base, Box):
     object_type = 'table'

@@ -311,7 +311,7 @@ class DePage(Base):
         main_top, main_bottom = 0, self.height
         if tls:
             main_top = max_tls = max(tls)
-            head_words = self.page.within_bbox((0, 0, self.width, max_tls)).extract_words()
+            head_words = self.page.crop((0, 0, self.width, max_tls)).extract_words()
             if not head_words:
                 main_top = 0
             for h_w in head_words:
@@ -320,7 +320,7 @@ class DePage(Base):
                     break
         if bls:
             main_bottom = min_bls = min(bls)
-            tail_words = self.page.within_bbox((0, min_bls, self.width, self.height)).extract_words()
+            tail_words = self.page.crop((0, min_bls, self.width, self.height)).extract_words()
             if not tail_words:
                 main_bottom = self.height
             for t_w in tail_words:

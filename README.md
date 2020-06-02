@@ -5,7 +5,7 @@
 ![](https://img.shields.io/pypi/v/depdf)
 ![](https://img.shields.io/github/license/meldonization/depdf)
 
-An ultimate pdf file disintegration tool. DePDF is designed to extract tables and paragraphs into structured markup language [eg. html] from embedding pdf pages. You can also use it to convert page/pdf to html.
+An ultimate pdf file disintegration tool. DePDF is designed to extract tables and paragraphs into structured markup language [eg. html] from embedding pdf pages. You can also use it to convert pdf page or pdf to html.
 
 Built on top of [`pdfplumber`](https://github.com/jsvine/pdfplumber)
 

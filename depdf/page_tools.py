@@ -12,7 +12,8 @@ PAGE_LANDSCAPE = 'landscape'
 NUM_SYMBOLS = '0-9lxvi'  # 页码的可能数字
 PAGE_NUM_RE = re.compile((
     r"^[-－]*[{0}]+(?:[-－]+[{0}]+)*[-－]*$|^[-－]+[{0}]+[-－]+$|"
-    r"^[-－]*[{0}]+[-－]*$|^[{0}]+(?:-[{0}]+)*[-－]+[{0}]+$"
+    r"^[-－]*[{0}]+[-－]*$|^[{0}]+(?:-[{0}]+)*[-－]+[{0}]+$|"
+    r'^第\s*[{0}]+\s*页$|^第\s*[一二三四五六七八九十百〇]+\s*页$'
 ).format(NUM_SYMBOLS), re.I)  # 1-1-1 or 11 or -1- or iv or 1-1-XVI
 
 TOC_SYMBOLS = '.…·'  # add to toc symbol list if new separator is found
