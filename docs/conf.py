@@ -28,7 +28,7 @@ copyright = '2020, Meldonization'
 author = 'Meldonization'
 
 # The full version, including alpha/beta/rc tags
-release = '0.2.1'
+release = '0.2.2'
 master_doc = 'index'
 
 

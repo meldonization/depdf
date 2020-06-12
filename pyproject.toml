@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "depdf"
-version = "0.2.1"
+version = "0.2.2"
 description = "PDF table & paragraph extractor"
 authors = ["Meltonization <mengzy1989@gmail.com>"]
 license = "GPL-3.0-or-later"
@@ -22,8 +22,8 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.6"
-pdfplumber = "^0.5.16"
-beautifulsoup4 = "^4.8.2"
+pdfplumber = "0.5.16"
+beautifulsoup4 = "4.8.2"
 
 [tool.poetry.dev-dependencies]
 
